@@ -1,0 +1,129 @@
+(*
+ * Copyright 2015 INRIA and Microsoft Corporation
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *)
+
+module MAC
+
+open Bytes
+open TLSConstants
+open TLSInfo
+
+(* refined, agile, ideal interface for indexed MACs
+   resistant to existential forgery against chosen message attacks (INT-CMA).
+
+  This module depends on
+
+   - a datatype of MAC algorithms (TLSConstants.MAC_alg)
+   - an abstract type of indexes (TLSInfo.id)
+   - a function from indexes to MAC algorithms (macAlg_of_epoch) and its logical spec.
+   - functions from MAC algorithms to their key-lengths and tag-lengths, and their logical specs.
+   - a function from indexes to booleans that indicates the safe indexes (authId) and its logical spec;
+     (this function is used only #if ideal)
+   - an abstract predicate on indexes and message (Msg),
+     specifying the logical property authenticated by safe MACs.
+
+   and the following assumptions:
+
+   - we generate (or coerce) at most one key per index.
+   - if an index is Auth, then its algorithm is computationally strong (INT-CMA).
+
+   Notes: - this interface deals with CMA, not the joint INT-CTXT assumption (where we rely on PRF)
+          - this multiplexing similarly applies to any keyed functionality.
+		  - concretely, we would get a bound depending on the quantitative usage of each strong algorithm
+		  - pragmatically, we may e.g. assume INT-CMA for both variants of SHA2, but not for MD5 or SHA.
+		  - so far we do not attempt to prove that the ad hoc constructions of SSL_3p0 are strong.
+
+   We typecheck an ideal variant of this module,
+   with an additional indirection for every call to HMAC with an Auth index via
+   a series of (standard, non-agile) MAC$a interfaces that specify that algorithm $a is INT-CMA.
+   where $a ranges over the subset of MAC algorithms of TLS for which we assume that they are INT-CMA.
+
+   The proof that MAC securely implements MAC.fs7 (up to computational indistinguishability)
+   goes as follows. Formally, it is parametric in the number of MAC algorithms that are INT-CMA,
+   so we need to typecheck MAC.fs for each such number, but this is very uniform; we do it for 2.
+
+   (1) When using the concrete implementations of MAC$a,
+       we easily check that toggling the #ideal flag in MAC.fs does not change its behaviour,
+	   (e.g. by inlining MAC$a.fs within MAC.fs) since both variants make the same calls to HMAC.
+
+   (2) By MAC.tc7, and since no other module calls any MAC$a,
+       we have (complete) abstraction for MAC$a.key, so
+       we apply their INT-CMA assumptions (up to computational indistinguishability),
+       setting the #ideal flag in each MAC$a.fs implementation.
+
+   (3) By MAC$a.tc7, we typecheck that the ideal variant of MAC$a now implements MAC$a.fs7
+
+   (4) By MAC.tc7, we conclude that the ideal variant of MAC now implements MAC.fs7
+
+   Our concrete core algorithms are implemented by HMAC,
+   after partial application of the algorithm name.
+   (we keep using a single HMAC module just for convenience, with constants as their first "a" parameters) *)
+
+type (;i:id) keyrepr = k:bytes {Length(k) = MacKeySize(MacAlg(i))}
+type (;i:id) tag     = m:bytes {Length(m) = MacSize(MacAlg(i))}
+
+// Our type of keys has a separate constructor for each strong MAC algorithm,
+// so that each of their key types (MAC_SHA256.key) can be kept abstract at every Auth index when #ideal.
+// plus a default constructor for all other keys, concretely represented as fixed-length bytes.
+// (thus, when not #ideal, all keys are KeyNoAuth and the other constructors are not used.)
+private type (;i:id) key =
+  | KeyNoAuth  of (k:(;i) keyrepr        { not(AuthId(i)) })
+  | Key_SHA256 of (k:(;i) MAC_SHA256.key { AuthId(i) /\ MacAlg(i) = MAC_SHA256.a })
+  | Key_SHA1   of (k:(;i) MAC_SHA1.key   { AuthId(i) /\ MacAlg(i) = MAC_SHA1.a   })
+
+// we recall the list of concrete MAC algorithms
+// assumed in TLSConstants.fs7 to be INT-CMA (in this instance, just MAC_SHA256.a and MAC_SHA1.a is)
+private ask INT_CMA_M(MAC_SHA256.a)
+private ask INT_CMA_M(MAC_SHA1.a)
+
+//We bound the algorithms we consider to allow for verification of agility.
+private assume
+  !i:id. AuthId(i) => ( MacAlg(i) = MAC_SHA256.a
+                   \/ MacAlg(i) = MAC_SHA1.a )
+
+ask !i,alg. (AuthId(i) /\ alg = MacAlg(i)) => (alg = MAC_SHA256.a \/ alg = MAC_SHA1.a)
+
+type text = bytes
+predicate val Msg: id * text -> bool
+
+// We define the Msg predicate of MAC_SHA256 and MAC_SHA1 as follows,
+// logically multiplexing them to the Msg predicate of MAC (to be defined in turn by users of MAC)
+private definition
+  !i,t. MAC_SHA256.Msg(i,t) <=>
+      (Msg(i,t) /\
+	   AuthId(i) /\
+	   MacAlg(i) = MAC_SHA256.a)
+private definition
+  !i,t. MAC_SHA1.Msg(i,t) <=>
+      (Msg(i,t) /\
+	   AuthId(i) /\
+	   MacAlg(i) = MAC_SHA1.a)
+
+ask !i. AuthId(i) /\ not(MacAlg(i)=MAC_SHA256.a \/ MacAlg(i)=MAC_SHA1.a) => false
+
+val GEN:    i:id -> (;i) key
+val LEAK:   i:id {not(AuthId(i))} -> (;i)key -> (;i)keyrepr
+val COERCE: i:id {not(AuthId(i))} -> (;i)keyrepr -> (;i)key
+
+val Mac:    i:id -> k:(;i) key -> t:text{Msg(i,t)} -> m:(;i) tag
+val Verify: i:id -> k:(;i) key -> t:text -> m:(;i) tag -> b:bool{ (b=true /\ AuthId(i)) => Msg(i,t) }
+
+(*
+// typing the log for an ideal functionality that
+// directly specifies the security of MAC (not used anymore)
+private type entry = (i:id * t:text * (;i)tag){Msg(i,t)}
+private val log: entry list ref
+private val tmem: i:id -> t:text -> entry list -> b:bool{ b = true => Msg(i,t) }
+*)

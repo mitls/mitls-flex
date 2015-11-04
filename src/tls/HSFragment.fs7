@@ -1,0 +1,53 @@
+(*
+ * Copyright 2015 INRIA and Microsoft Corporation
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *)
+
+module HSFragment
+open Bytes
+open TLSInfo
+open Range
+open Error
+open TLSError
+
+private type (;i:id,r:range) fragment = {frag: (;r)rbytes}
+private type (;i:id) stream = {sb:bytes list}
+
+predicate Sent of i:id * (;i) stream * r:range * (;i,r)fragment
+assume !i,s,r,f. Sent(i,s,r,f)
+
+type (;i:id,s:(;i)stream,r:range)plain = f:(;i,r)fragment{AuthId(i) => Sent(i,s,r,f)}
+
+function val Payload: i:id * r:range * (;i,r)fragment -> cbytes
+private definition !i,r,f. Payload(i,r,f) = B(f.frag)
+
+function val EmptyStream: i:id -> (;i)stream
+private definition !i. EmptyStream(i) = {sb = []}
+val init: i:id -> s:(;i)stream{s = EmptyStream(i)}
+
+val fragmentPlain: i:id -> r:range -> b:(;r) rbytes -> f:(;i,EmptyStream(i),r) plain{B(b) = Payload(i,r,f)}
+val fragmentRepr:  i:id -> r:range -> f:(;i,r) fragment -> b:(;r) rbytes{B(b) = Payload(i,r,f)}
+
+val reStream: i:id -> s:(;i)stream -> r:range -> p:(;i,s,r)plain -> s':(;i)stream ->
+	p':(;i,s',r)plain{Payload(i,r,p) = Payload(i,r,p')}
+
+val makeExtPad:  i:id -> r:range -> f:(;i,r)fragment -> f':(;i,r)fragment{f=f'}
+val parseExtPad: i:id -> r:range -> f:(;i,r)fragment -> res:((f':(;i,r)fragment{f=f'}) Result){?f. res = Correct(f)}
+
+val widen: i:id -> r0:range -> r1:range {r1 = RangeClass(i,r0)} ->
+    f0:(;i,r0)fragment -> f1:(;i,r1)fragment{Payload(i,r0,f0) = Payload(i,r1,f1) /\ !s. Sent(i,s,r0,f0) => Sent(i,s,r1,f1)}
+
+function val Extend: i:id * s:(;i)stream * r:range * (;i,r)fragment -> 'a // (;i)stream
+private definition !i,s,r,f. Extend(i,s,r,f) = {sb = f.frag :: s.sb }
+val extend: i:id -> s:(;i)stream -> r:range -> f:(;i,r)fragment -> s':(;i)stream{s'=Extend(i,s,r,f)}

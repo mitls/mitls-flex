@@ -1,0 +1,743 @@
+(*
+ * Copyright 2015 INRIA and Microsoft Corporation
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *)
+
+module Handshake
+
+open CoreKeys
+
+open Bytes
+open Error
+open TLSError
+open TLSInfo
+open Range
+open StatefulLHAE
+open TLSConstants
+open TLSExtensions
+open HandshakeMessages
+
+// ----------------------------------------------------------------------
+// Dynamically assumed events in the Handshake, reflecting user decisions
+
+predicate Unreachable of unit // for testing
+
+predicate Configure of Role * epoch * config
+predicate Authorize of Role * SessionInfo
+
+// If the user Authorize, we can put the session in the DB
+private definition !r,si. Authorize(r,si) => SessionDB.Authorize(r,si)
+
+// If we select a session from the DB, the user previously authorized it
+private theorem !r,si. SessionDB.Authorize(r,si) => Authorize(r,si)
+
+predicate UpdatesClientAuth of SessionInfo * SessionInfo
+predicate EvSentFinishedFirst of ConnectionInfo * bool
+predicate Negotiated of Role * SessionInfo * config * config
+predicate CompleteEpoch of Role * epoch
+predicate Complete of ConnectionInfo
+
+val check_negotiation: r:Role -> si:SessionInfo -> cfg:config -> unit{?cfg'. Negotiated(r,si,cfg,cfg')}
+
+(* Anonymous clients are authorized for client-unauthenticated sessions *)
+private assume !si. (si.client_auth = false /\ si.clientID = []) => Authorize(Server,si)
+private assume !r,si,si'. Authorize(Client,si) /\ SessionHelloParams(si,()) =
+  SessionHelloParams(si',()) /\ si'.serverID = si.serverID => Authorize(Client,si')
+
+private assume !r,si,si'. Authorize(Server,si) /\ SessionHelloParams(si,()) =
+  SessionHelloParams(si',()) /\ si'.serverID = si.serverID /\ si'.clientID = si.clientID /\ si'.client_auth = si.client_auth => Authorize(Server,si')
+
+private definition !a,k,t. Sig.Msg(a,k,t)
+  <=> ((?si,pk,pv,r.
+           ClientLogBeforeCertificateVerifyRSA_Auth(si,t) /\
+           si.pmsId = PmsId(PMS.RSAPMS(pk,pv,r))
+           /\  (PMS.SafeRSA(pk,pv) => HonestPMS(si.pmsId))
+           /\ k = Cert.SigPKCert(si.clientID,a)
+        ) \/
+        (?si,p,g,gc,gs,r.
+           ClientLogBeforeCertificateVerifyDHE_Auth(si,t) /\
+		   si.pmsId = PmsId(PMS.DHPMS(p,g,gs,gc,r)) /\
+           (DHGroup.PP(p,g) /\ DH.HonestExponential(p,g,gs) => HonestPMS(si.pmsId)) /\
+           k = Cert.SigPKCert(si.clientID,a)) \/
+        (?si,p,g,gs.
+           B(t) = B(si.init_crand) @| B(si.init_srand) @| DHEParamBytes(p,g,gs) /\
+           Length(si.init_crand) = 32 /\
+           Length(si.init_srand) = 32 /\
+           DHGroup.PP(p,g) /\ DH.HonestExponential(p,g,gs) /\
+           k = Cert.SigPKCert(si.serverID,a))
+           )
+
+ask !si,pk,pv,r,t,a,k.
+           ClientLogBeforeCertificateVerifyRSA_Auth(si,t)
+         /\ si.pmsId = PmsId(PMS.RSAPMS(pk,pv,r))
+         /\  (PMS.SafeRSA(pk,pv) => HonestPMS(si.pmsId))
+         /\  k = Cert.SigPKCert(si.clientID,a)
+           => Sig.Msg(a,k,t)
+
+ask !si,p,g,gc,gs,r,a,k,t.
+           ClientLogBeforeCertificateVerifyDHE_Auth(si,t) /\
+	       si.pmsId = PmsId(PMS.DHPMS(p,g,gs,gc,r)) /\
+           (DHGroup.PP(p,g) /\ DH.HonestExponential(p,g,gs) => HonestPMS(si.pmsId)) /\
+           k = Cert.SigPKCert(si.clientID,a)
+           => Sig.Msg(a,k,t)
+
+ask !si,p,g,gs,a,k,t.
+           B(t) = B(si.init_crand) @| B(si.init_srand) @| DHEParamBytes(p,g,gs) /\
+           Length(si.init_crand) = 32 /\
+           Length(si.init_srand) = 32 /\
+           DHGroup.PP(p,g) /\ DH.HonestExponential(p,g,gs) /\
+           k = Cert.SigPKCert(si.serverID,a)
+           => Sig.Msg(a,k,t)
+
+ask !si,p,g,gs,a,k,t.
+           B(t) = B(si.init_crand) @| B(si.init_srand) @| DHEParamBytes(p,g,gs) /\
+           Length(si.init_crand) = 32 /\
+           Length(si.init_srand) = 32 /\
+           Sig.Msg(a,k,t) /\
+           k = Cert.SigPKCert(si.serverID,a) =>
+           (DHGroup.PP(p,g) /\ DH.HonestExponential(p,g,gs))
+
+predicate LMsg of  a:Sig.alg * (;a)Sig.skey * log
+assume !cl,a,sk,l. LMsg(a,sk,l) => Sig.Msg(a,Sig.PK(sk),l)
+
+predicate LClientFinishedResume of epoch * log // for testing
+assume !e,l. LClientFinishedResume(e,l) <=> ClientLogBeforeClientFinishedResume(EpochAI(e),EpochSI(e),l)
+
+private definition !msi,r,b. PRF.VerifyData(msi,r,b)
+  <=> ((?si. msi = MsI(si) /\
+        r = Client /\
+        SentCCS(Client,si) /\
+        ClientLogBeforeClientFinished(si,b)) \/
+       (?si. msi = MsI(si) /\
+        r = Server /\
+        SentCCS(Server,si) /\
+        ServerLogBeforeServerFinished(si,b)) \/
+       (?si,ai. msi = MsI(si) /\
+        r = Client /\
+        SentCCSAbbr(Client,{abbr_crand = ai.abbr_crand; abbr_srand = ai.abbr_srand; abbr_session_hash = si.session_hash; abbr_vd = ai.abbr_vd}) /\
+        ClientLogBeforeClientFinishedResume(ai,si,b)) \/
+       (?si,ai. msi = MsI(si) /\
+        r = Server /\
+        SentCCSAbbr(Server,{abbr_crand = ai.abbr_crand; abbr_srand = ai.abbr_srand; abbr_session_hash = si.session_hash; abbr_vd = ai.abbr_vd}) /\
+        ServerLogBeforeServerFinishedResume(ai,si,b)))
+
+ask !si,b. PRF.VerifyData(MsI(si),Client,b) /\
+    ServerLogBeforeClientFinished(si,b) => SentCCS(Client,si)
+
+ask !si,b. PRF.VerifyData(MsI(si),Server,b) /\
+    ClientLogBeforeServerFinished(si,b) => SentCCS(Server,si)
+
+ask !ai,si,b. PRF.VerifyData(MsI(si),Client,b) /\
+    ServerLogBeforeClientFinishedResume(ai,si,b)
+    => SentCCSAbbr(Client,{abbr_crand = ai.abbr_crand; abbr_srand = ai.abbr_srand; abbr_session_hash = si.session_hash; abbr_vd = ai.abbr_vd})
+
+ask !ai,si,b. PRF.VerifyData(MsI(si),Server,b) /\
+    ClientLogBeforeServerFinishedResume(ai,si,b)
+    => SentCCSAbbr(Server,{abbr_crand = ai.abbr_crand; abbr_srand = ai.abbr_srand; abbr_session_hash = si.session_hash; abbr_vd = ai.abbr_vd})
+
+(*
+ask !si,si',b. PRF.VerifyData(MsI(si),Server,b) /\
+    SentCCS(Client,si.init_crand,si.init_srand,si) /\
+    ClientLogBeforeClientFinishedResume(si',b)
+    => SentCCS(Client,si'.init_crand,si'.init_srand,si)
+
+assume !r,si,cr,sr,si'.
+       SentCCS(r,si.init_crand,si.init_srand,si) /\
+       SentCCS(r,cr,sr,si') /\
+       MsI(si) = MsI(si') => si = si'
+*)
+
+private definition !role,e.
+  CompleteEpoch(role,e)
+  <=>
+   (IsSuccEpoch(e) /\ IsValidEpoch(e) /\ IsValidEpoch(Pred(e)) /\
+   (SafeVD(EpochSI(e))  => (Open(e) /\ Match(Id(e)))) /\
+   (!pk,pv,r. role = Client /\ EpochSI(e).pmsId = PmsId(PMS.RSAPMS(pk,pv,r)) /\
+              pk = Cert.RSAPKCert(EpochSI(e).serverID) /\
+              PMS.SafeRSA(pk,pv) => HonestPMS(EpochSI(e).pmsId)) /\
+   (!pk,pv,r. role = Server /\ EpochSI(e).client_auth = true /\ EpochSI(e).pmsId = PmsId(PMS.RSAPMS(pk,pv,r)) /\
+              pk = Cert.RSAPKCert(EpochSI(e).serverID) /\ PMS.SafeRSA(pk,pv) /\ Sig.Safe(EpochSI(e).clientSigAlg,Cert.SigPKCert(EpochSI(e).clientID,EpochSI(e).clientSigAlg))
+              => HonestPMS(EpochSI(e).pmsId)) /\
+   (!p,g,gc,gs,r. role = Client /\ EpochSI(e).pmsId = PmsId(PMS.DHPMS(p,g,gs,gc,r)) /\ Sig.Safe(EpochSI(e).serverSigAlg,Cert.SigPKCert(EpochSI(e).serverID,EpochSI(e).serverSigAlg))
+              => HonestPMS(EpochSI(e).pmsId)) /\
+   (!p,g,gc,gs,r,a. role = Server /\ EpochSI(e).pmsId = PmsId(PMS.DHPMS(p,g,gs,gc,r)) /\ Sig.Safe(EpochSI(e).clientSigAlg,Cert.SigPKCert(EpochSI(e).clientID,EpochSI(e).clientSigAlg))
+              => HonestPMS(EpochSI(e).pmsId)))
+
+// Line 2 of the RHS is a local invariant
+// Line 3 yields agreement from verifying the peer Finished message
+// The rest provide verified safety from the long-term keys (for both roles, for RSA then DH)
+
+(* Negotiated remains to be defined but it can be a nice global spec of what HS is meant to achieve.
+   Especially interesting would be proving that the result is the "best possible" *)
+
+(*
+private definition !ci. Complete(ci) <=>
+        ( EpochSI(ci.id_in) = EpochSI(ci.id_out) /\
+          B(EpochCRand(ci.id_in)) = B(EpochCRand(ci.id_out)) /\
+          B(EpochSRand(ci.id_in)) = B(EpochSRand(ci.id_out)) /\
+          CompleteEpoch(DualRole(ci.role),ci.id_in) /\
+          CompleteEpoch(ci.role,ci.id_out))
+*)
+
+private definition !ci. Complete(ci) <=>
+         (EpochSI(ci.id_in) = EpochSI(ci.id_out) /\
+          B(EpochCRand(ci.id_in)) = B(EpochCRand(ci.id_out)) /\
+          B(EpochSRand(ci.id_in)) = B(EpochSRand(ci.id_out)) /\
+          IsSuccEpoch(ci.id_in) /\ IsSuccEpoch(ci.id_out)
+/\        (ci.role = Client \/ ci.role = Server)
+/\        ((IsFullEpoch(ci.id_out) /\ SentCCS(ci.role,EpochSI(ci.id_out))) \/
+           (IsAbbrEpoch(ci.id_out) /\ SentCCSAbbr(ci.role,EpochAI(ci.id_out))))
+/\
+          (SafeVD(EpochSI(ci.id_in))  =>
+            ((IsFullEpoch(ci.id_in) /\ SentCCS(DualRole(ci.role),EpochSI(ci.id_in))) \/
+             (IsAbbrEpoch(ci.id_in) /\ SentCCSAbbr(DualRole(ci.role),EpochAI(ci.id_in)))))
+
+/\         ((ci.role = Client /\
+           (!pks,pv,r.
+              pks = Cert.RSAPKCert(EpochSI(ci.id_in).serverID) /\
+              EpochSI(ci.id_in).pmsId = PmsId(PMS.RSAPMS(pks,pv,r)) /\
+              PMS.SafeRSA(pks,pv) => HonestPMS(EpochSI(ci.id_in).pmsId)) /\
+           (!pks,p,g,gc,gs,r.
+              pks = Cert.SigPKCert(EpochSI(ci.id_in).serverID,EpochSI(ci.id_in).serverSigAlg) /\
+              EpochSI(ci.id_in).pmsId = PmsId(PMS.DHPMS(p,g,gs,gc,r)) /\
+              Sig.Safe(EpochSI(ci.id_in).serverSigAlg,pks)
+              => HonestPMS(EpochSI(ci.id_in).pmsId))) \/
+          (ci.role = Server /\
+           EpochSI(ci.id_in).client_auth = true /\
+           (!pks,pkc,pv,r.
+              pks = Cert.RSAPKCert(EpochSI(ci.id_in).serverID) /\
+              pkc = Cert.SigPKCert(EpochSI(ci.id_in).clientID,EpochSI(ci.id_in).clientSigAlg) /\
+              EpochSI(ci.id_in).pmsId = PmsId(PMS.RSAPMS(pks,pv,r)) /\
+              PMS.SafeRSA(pks,pv) /\
+              Sig.Safe(EpochSI(ci.id_in).clientSigAlg,pkc)
+              => HonestPMS(EpochSI(ci.id_in).pmsId)) /\
+           (!pkc,p,g,gc,gs,r.
+              pkc = Cert.SigPKCert(EpochSI(ci.id_in).clientID,EpochSI(ci.id_in).clientSigAlg) /\
+              EpochSI(ci.id_in).pmsId = PmsId(PMS.DHPMS(p,g,gs,gc,r)) /\
+              Sig.Safe(EpochSI(ci.id_in).clientSigAlg,pkc)
+              => HonestPMS(EpochSI(ci.id_in).pmsId))))
+
+         )
+
+ask !ci. Complete(ci) =>
+	(
+	EpochSI(ci.id_in) = EpochSI(ci.id_out) /\
+	// Epoch In
+	IsSuccEpoch(ci.id_in) /\
+	OpenState(ci.id_in) /\
+	// Epoch Out
+	IsSuccEpoch(ci.id_out) /\
+	OpenState(ci.id_out)
+	)
+
+ask !ci.
+    Complete(ci) /\
+    Match(Id(ci.id_in)) /\
+    HonestPMS(EpochSI(ci.id_in).pmsId) /\
+    StrongKEF(KefAlg(EpochSI(ci.id_in))) /\
+    StrongVD(VdAlg(EpochSI(ci.id_in))) /\
+    StrongKDF(KdfAlg(EpochSI(ci.id_in))) /\
+    StrongAE(ci.id_in)
+    => (Open(ci.id_in) /\ Safe(ci.id_in))
+
+ask !ci.
+    Complete(ci) /\
+    Match(Id(ci.id_in)) /\
+    HonestPMS(EpochSI(ci.id_in).pmsId) /\
+    StrongKEF(KefAlg(EpochSI(ci.id_in))) /\
+    StrongVD(VdAlg(EpochSI(ci.id_in))) /\
+    StrongKDF(KdfAlg(EpochSI(ci.id_in))) /\
+    StrongAuth(ci.id_in) => Auth(ci.id_in)
+
+ask !ci.
+    Complete(ci) /\
+    Match(Id(ci.id_out)) /\
+    HonestPMS(EpochSI(ci.id_out).pmsId) /\
+    StrongKEF(KefAlg(EpochSI(ci.id_out))) /\
+    StrongVD(VdAlg(EpochSI(ci.id_out))) /\
+    StrongKDF(KdfAlg(EpochSI(ci.id_out))) /\
+    StrongAE(ci.id_out) => Safe(ci.id_out)
+
+ask !ci.
+    Complete(ci) /\
+    Match(Id(ci.id_out)) /\
+    HonestPMS(EpochSI(ci.id_out).pmsId) /\
+    StrongKEF(KefAlg(EpochSI(ci.id_out))) /\
+    StrongVD(VdAlg(EpochSI(ci.id_out))) /\
+    StrongKDF(KdfAlg(EpochSI(ci.id_out))) /\
+    StrongAuth(ci.id_out) => Auth(ci.id_out)
+
+//We get the following by applying preconditions to SentCCS
+private assume !e. Open(e) => Match(Id(e))
+
+ask !ci.
+    Complete(ci) /\
+    HonestPMS(EpochSI(ci.id_out).pmsId) /\
+    StrongKEF(KefAlg(EpochSI(ci.id_out))) /\
+    StrongVD(VdAlg(EpochSI(ci.id_out))) /\
+    StrongKDF(KdfAlg(EpochSI(ci.id_out))) /\
+    StrongAuth(ci.id_out) =>
+    (Auth(ci.id_out) /\ Open(ci.id_out) /\ Auth(ci.id_in) /\ Open(ci.id_in))
+
+ask !ci.
+    Complete(ci) /\
+    HonestPMS(EpochSI(ci.id_out).pmsId) /\
+    StrongKEF(KefAlg(EpochSI(ci.id_out))) /\
+    StrongVD(VdAlg(EpochSI(ci.id_out))) /\
+    StrongKDF(KdfAlg(EpochSI(ci.id_out))) /\
+    StrongAE(ci.id_out) =>
+    (Safe(ci.id_out) /\ Open(ci.id_out) /\ Safe(ci.id_in) /\ Open(ci.id_in))
+
+predicate NextEpochs of epoch * epoch * epoch * epoch
+definition !oldin,oldout,newin,newout. NextEpochs(oldin,oldout,newin,newout) <=>
+           (IsSuccEpoch(newin) /\ IsSuccEpoch(newout) /\
+           B(EpochCRand(newin)) = B(EpochCRand(newout)) /\
+           B(EpochSRand(newin)) = B(EpochSRand(newout)) /\
+            EpochSI(newin) = EpochSI(newout) /\ oldout = Pred(newout) /\ oldin = Pred(newin))
+
+predicate NextFullEpochs of epoch * epoch * epoch * epoch
+definition !oldin,oldout,newin,newout. NextEpochs(oldin,oldout,newin,newout) <=>
+           (IsFullEpoch(newin) /\ IsFullEpoch(newout) /\
+            EpochSI(newin) = EpochSI(newout) /\
+            oldout = Pred(newout) /\ oldin = Pred(newin))
+
+predicate NextAbbrEpochs of epoch * epoch * epoch * epoch
+definition !oldin,oldout,newin,newout. NextEpochs(oldin,oldout,newin,newout) <=>
+           (IsAbbrEpoch(newin) /\ IsAbbrEpoch(newout) /\
+            EpochAI(newin) = EpochAI(newout) /\
+            EpochSI(newin) = EpochSI(newout) /\
+            oldout = Pred(newout) /\ oldin = Pred(newin))
+
+// The constructor indicates either what we are doing locally or which peer message we are expecting,
+type (;ci:ConnectionInfo) serverState =  (* note that the CertRequest bits are determined by the config *)
+                    (* we may omit some ProtocolVersion, mostly a ghost variable *)
+   | ClientHello                  of cVerifyData * sVerifyData
+
+   | ClientCertificateRSA         of (si:SessionInfo * pv:ProtocolVersion * sk:RSAKey.sk * l:log){si.serverID <> [] /\ ServerLogBeforeClientCertificateRSA_Auth(si,pv,l) /\ si.client_auth = true}
+   | ServerCheckingCertificateRSA of (si:SessionInfo * pv:ProtocolVersion * sk:RSAKey.sk * l:log * certs:Cert.chain * b:bytes){si.serverID <> [] /\ ServerLogBeforeClientCertificateRSA_Auth(si,pv,l) /\ B(b) = CertificateMsg(certs) /\ si.client_auth = true }
+   | ClientKeyExchangeRSA         of (si:SessionInfo * pv:ProtocolVersion * sk:RSAKey.sk * l:log){si.serverID <> [] /\ ServerLogBeforeClientKeyExchangeRSA(si,pv,l) /\ (si.client_auth = true => (si.clientID <> [] /\ Authorize(Server,si)))}
+
+   | ClientCertificateDH          of si:SessionInfo * l:log
+   | ServerCheckingCertificateDH  of si:SessionInfo * l:log * b:bytes
+   | ClientKeyExchangeDH          of si:SessionInfo * l:log
+
+   | ClientCertificateDHE         of si:SessionInfo * dhp:dhparams * gx:(;dhp.dhp,dhp.dhg)DHGroup.elt * (;dhp.dhp,dhp.dhg,gx)DH.secret * l:log{
+       DHGroup.PP(dhp.dhp,dhp.dhg) /\ DH.HonestExponential(dhp.dhp,dhp.dhg,gx) /\
+       ServerLogBeforeClientCertificateDHE(si,l) /\ si.client_auth = true}
+
+   | ServerCheckingCertificateDHE of si:SessionInfo * dhp:dhparams * gx:(;dhp.dhp,dhp.dhg)DHGroup.elt * (;dhp.dhp,dhp.dhg,gx)DH.secret * l:log * c:Cert.chain * b:bytes{
+       DHGroup.PP(dhp.dhp,dhp.dhg) /\ DH.HonestExponential(dhp.dhp,dhp.dhg,gx) /\
+       ServerLogBeforeClientCertificateDHE(si,l) /\
+       B(b) = CertificateMsg(c) /\ si.client_auth = true}
+
+   | ClientKeyExchangeDHE         of si:SessionInfo * dhp:dhparams * gx:(;dhp.dhp,dhp.dhg)DHGroup.elt * (;dhp.dhp,dhp.dhg,gx)DH.secret * l:log{
+       DHGroup.PP(dhp.dhp,dhp.dhg) /\ DH.HonestExponential(dhp.dhp,dhp.dhg,gx) /\
+       ServerLogBeforeClientKeyExchangeDHE(si,l) /\ (si.client_auth = true => (si.clientID <> [] /\ Authorize(Server,si)))}
+
+   | ClientKeyExchangeDH_anon     of SessionInfo * dhp:dhparams * gx:(;dhp.dhp,dhp.dhg)DHGroup.elt * (;dhp.dhp,dhp.dhg,gx)DH.secret * log{
+	   DHGroup.PP(dhp.dhp,dhp.dhg) /\ DH.HonestExponential(dhp.dhp,dhp.dhg,gx)}
+
+   | CertificateVerify            of (si:SessionInfo * (;si)PRF.masterSecret * l:log){si.client_auth = true /\ si.clientID <> [] /\ ServerLogBeforeClientCertificateVerify(si,l) /\ Authorize(Server,si)}
+   | ClientCCS                    of (si:SessionInfo * (;si)PRF.masterSecret * l:log){
+                                       ServerLogBeforeClientFinished(si,l) /\ (si.client_auth = true => Authorize(Server,si))}
+   | ClientFinished               of (si:SessionInfo * (;si)PRF.masterSecret * e:succEpoch * w:(;Id(e))StatefulLHAE.writer * l:log){
+                                       EpochSI(e)=si /\
+                                       EpochSI(ci.id_in)=si /\
+				       Pred(e) = ci.id_out /\
+				       EpochWriter(e) = ci.role /\
+                                       B(EpochCRand(ci.id_in)) = B(EpochCRand(e)) /\
+                                       B(EpochSRand(ci.id_in)) = B(EpochSRand(e)) /\
+                                       si.init_crand = EpochCRand(e) /\
+                                       si.init_srand = EpochSRand(e) /\
+                                       IsSuccEpoch(ci.id_in) /\
+                                       StatefulLHAE.History(Id(e),Writer,w) = StatefulPlain.EmptyHistory(Id(e)) /\
+                                       ServerLogBeforeClientFinished(si,l) /\
+                                       (si.client_auth = true => Authorize(Server,si))}
+   (* by convention, the parameters are named si, cv, cr', sr', ms, log *)
+   | ServerWritingCCS             of (si:SessionInfo * ms:(;si)PRF.masterSecret * e:succEpoch * w:(;Id(e))StatefulLHAE.writer * cv:cVerifyData * l:log){
+                                       IsSuccEpoch(ci.id_in) /\
+                                       IsSuccEpoch(e) /\
+                                       EpochSI(e)=si /\
+                                       EpochSI(ci.id_in)=si /\
+				       Pred(e) = ci.id_out /\
+				       EpochWriter(e) = ci.role /\
+				       (SafeVD(si) => SentCCS(Client,si)) /\
+                                       B(EpochCRand(ci.id_in)) = B(EpochCRand(e)) /\
+                                       B(EpochSRand(ci.id_in)) = B(EpochSRand(e)) /\
+                                       si.init_crand = EpochCRand(e) /\
+                                       si.init_srand = EpochSRand(e) /\
+				       ServerLogBeforeServerFinished(si,l) /\
+				       StatefulLHAE.History(Id(e),Writer,w) = StatefulPlain.EmptyHistory(Id(e)) /\
+         (* PRF.VerifyData(e,Client,cv) /\ *)
+         (si.client_auth = true => Authorize(Server,si))}
+   | ServerWritingFinished        of si:SessionInfo * (;si)PRF.masterSecret * e:succEpoch * cv:cVerifyData * sv:sVerifyData{
+       EpochSI(e)=si /\ Complete(ci) /\
+         (* PRF.VerifyData(e,Client,cv) /\ PRF.VerifyData(e,Server,sv) /\ *)
+         (si.client_auth = true => Authorize(Server,si))}
+
+   | ServerWritingCCSResume       of (ew:succEpoch * w:(;Id(ew))StatefulLHAE.writer * er:succEpoch * r:(;Id(er))StatefulLHAE.reader * (;EpochSI(ew))PRF.masterSecret * l:log){
+                                         EpochSI(ew)=EpochSI(er) /\
+                                         B(EpochCRand(ew)) = B(EpochCRand(er)) /\
+                                         B(EpochSRand(ew)) = B(EpochSRand(er)) /\
+                                         ServerLogBeforeServerFinishedResume(EpochAI(er),EpochSI(er),l) /\ EpochWriter(ew) = ci.role /\
+                                         EpochWriter(er) = DualRole(ci.role) /\ Pred(ew) = ci.id_out /\ Pred(er) = ci.id_in /\
+                                         (EpochSI(ew).client_auth = true => Authorize(Server,EpochSI(ew)))
+				 /\      StatefulLHAE.History(Id(ew),Writer,w) = StatefulPlain.EmptyHistory(Id(ew))
+				 /\      StatefulLHAE.History(Id(er),Reader,r) = StatefulPlain.EmptyHistory(Id(er)) }
+   | ClientCCSResume              of e:succEpoch * r:(;Id(e))StatefulLHAE.reader * sVerifyData * (;EpochSI(e))PRF.masterSecret * l:log{
+   ServerLogBeforeClientFinishedResume(EpochAI(e),EpochSI(e),l) /\
+   Pred(e) = ci.id_in /\
+   SentCCSAbbr(Server,EpochAI(ci.id_out)) /\
+   EpochWriter(e) = DualRole(ci.role) /\
+   EpochSI(e)=EpochSI(ci.id_out) /\
+   B(EpochCRand(e)) = B(EpochCRand(ci.id_out)) /\
+   B(EpochSRand(e)) = B(EpochSRand(ci.id_out)) /\
+   StatefulLHAE.History(Id(e),Reader,r) = StatefulPlain.EmptyHistory(Id(e)) /\
+   (EpochSI(e).client_auth = true => Authorize(Server,EpochSI(e)))}
+(* check idin or idout?? *)
+
+   | ClientFinishedResume         of si:SessionInfo * (;si)PRF.masterSecret * e:succEpoch * sv:sVerifyData * l:log{
+       EpochSI(e)=si /\
+       e = ci.id_in /\
+       EpochSI(e) = EpochSI(ci.id_out) /\
+       B(EpochSRand(e)) = B(EpochSRand(ci.id_out)) /\
+       B(EpochCRand(e)) = B(EpochCRand(ci.id_out)) /\
+       ServerLogBeforeClientFinishedResume(EpochAI(e),si,l) /\
+       (EpochSI(e).client_auth = true => Authorize(Server,EpochSI(e)))}
+
+   | ServerIdle                   of cVerifyData * sVerifyData
+   (* the ProtocolVersion is the highest TLS version proposed by the client *)
+
+type (;ci:ConnectionInfo) clientState =
+   | ServerHello                  of cr:crand * sid:sessionID * cl:(clientExtension list) * cvd:cVerifyData * svd:sVerifyData * l:log{ClientLogBeforeServerHello(cr,l)}
+
+   | ServerCertificateRSA         of si:SessionInfo * l:log{ClientLogBeforeServerCertificate(si,l)}
+   | ClientCheckingCertificateRSA of si:SessionInfo * l:log * ser:Cert.chain * pv:ProtocolVersion option * b:bytes{ClientLogBeforeServerCertificate(si,l) /\ B(b) = CertificateMsg(ser)}
+   | CertificateRequestRSA        of si:SessionInfo * l:log{si.serverID <> [] /\ ClientLogBeforeCertificateRequestRSA(si,l) /\ Authorize(Client,si)} (* both certificate request and hellodone will be accepted *)
+   | ServerHelloDoneRSA           of si:SessionInfo * c:Cert.sign_cert * l:log{ClientLogBeforeServerHelloDoneRSA(si,l) /\ Authorize(Client,si) /\ si.client_auth = true}
+
+   | ServerCertificateDH          of SessionInfo * log
+   | ClientCheckingCertificateDH  of SessionInfo * log * ProtocolVersion option * bytes
+   | CertificateRequestDH         of SessionInfo * log (* We pick our cert and store it in sessionInfo as soon as the server requests it.
+                                                         We put None if we don't have such a certificate, and we know whether to send
+                                                         the Certificate message or not based on the state when we receive the Finished message *)
+   | ServerHelloDoneDH            of SessionInfo * log
+
+   | ServerCertificateDHE         of si:SessionInfo * l:log{ClientLogBeforeServerCertificate(si,l)}
+   | ClientCheckingCertificateDHE of si:SessionInfo * l:log * ser:Cert.chain * ProtocolVersion option * b:bytes{ClientLogBeforeServerCertificate(si,l) /\ B(b) = CertificateMsg(ser)}
+   | ServerKeyExchangeDHE         of si:SessionInfo * l:log{si.serverID <> [] /\ ClientLogBeforeServerKeyExchangeDHE(si,l) /\ Authorize(Client,si)}
+   | CertificateRequestDHE        of si:SessionInfo * dhp:dhparams * gx:(;dhp.dhp,dhp.dhg)DHGroup.elt * l:log{
+								  DHGroup.PP(dhp.dhp,dhp.dhg) /\
+                                  (Sig.Safe(si.serverSigAlg,Cert.SigPKCert(si.serverID,si.serverSigAlg)) => (DH.HonestExponential(dhp.dhp,dhp.dhg,gx))) /\
+                                  ClientLogBeforeCertificateRequestDHE(si,l) /\ Authorize(Client,si)}
+   | ServerHelloDoneDHE           of si:SessionInfo * Cert.sign_cert * dhp:dhparams * gx:(;dhp.dhp,dhp.dhg)DHGroup.elt * l:log{
+							      DHGroup.PP(dhp.dhp,dhp.dhg) /\
+                                  (Sig.Safe(si.serverSigAlg,Cert.SigPKCert(si.serverID,si.serverSigAlg)) => (DH.HonestExponential(dhp.dhp,dhp.dhg,gx))) /\
+                                  ClientLogBeforeServerHelloDoneDHE(si,l) /\ Authorize(Client,si) /\ si.client_auth = true}
+
+   | ServerKeyExchangeDH_anon of SessionInfo * log (* Not supported yet *)
+   | ServerHelloDoneDH_anon of SessionInfo * dhp:dhparams * gx:(;dhp.dhp,dhp.dhg)DHGroup.elt * log{DHGroup.PP(dhp.dhp,dhp.dhg)}
+
+   | ClientWritingCCS       of si:SessionInfo * (;si)PRF.masterSecret * l:log{
+                                  (!p,g,gc,gs,r. si.pmsId = PmsId(PMS.DHPMS(p,g,gs,gc,r)) /\
+                                                 Sig.Safe(si.serverSigAlg,Cert.SigPKCert(si.serverID,si.serverSigAlg)) => HonestPMS(si.pmsId)) /\
+                                  ClientLogBeforeClientFinished(si,l) /\ Authorize(Client,si)}
+   | ServerCCS              of (si:SessionInfo * (;si)PRF.masterSecret * e:succEpoch * r:(;Id(e))StatefulLHAE.reader * cv:cVerifyData * l:log){
+         (!p,g,gc,gs,r. si.pmsId = PmsId(PMS.DHPMS(p,g,gs,gc,r)) /\
+                        Sig.Safe(si.serverSigAlg,Cert.SigPKCert(si.serverID,si.serverSigAlg)) => HonestPMS(si.pmsId)) /\
+     	 EpochSI(e)=si  /\
+         EpochWriter(e) = DualRole(ci.role) /\
+         ClientLogBeforeServerFinished(si,l) /\
+         ci.id_in = Pred(e) /\
+         SentCCS(Client,si) /\
+         IsSuccEpoch(ci.id_out) /\ IsSuccEpoch(e) /\
+         EpochSI(e) = EpochSI(ci.id_out) /\
+         B(EpochCRand(e)) = B(EpochCRand(ci.id_out)) /\
+         B(EpochSRand(e)) = B(EpochSRand(ci.id_out)) /\
+         EpochCRand(e) = si.init_crand /\
+         EpochSRand(e) = si.init_srand /\
+         StatefulLHAE.History(Id(e),Reader,r) = StatefulPlain.EmptyHistory(Id(e)) /\
+
+         (* PRF.VerifyData(e,Client,cv) /\ *)
+         Authorize(Client,si)}
+   | ServerFinished         of si:SessionInfo * (;si)PRF.masterSecret * e:succEpoch * cv:cVerifyData * l:log{ClientLogBeforeServerFinished(si,l) /\
+                                                                                                               SentCCS(Client,si) /\
+                                                                                                               EpochSI(ci.id_in)=si  /\
+                                                                                                               EpochSI(ci.id_in) = EpochSI(ci.id_out) /\
+                                                                                                               IsSuccEpoch(ci.id_out) /\ IsSuccEpoch(ci.id_in) /\
+
+                                                                                                               B(EpochCRand(ci.id_in)) = B(EpochCRand(ci.id_out)) /\
+                                                                                                               B(EpochSRand(ci.id_in)) = B(EpochSRand(ci.id_out)) /\
+                                                                                                               EpochCRand(ci.id_in) = si.init_crand /\
+                                                                                                               EpochSRand(ci.id_in) = si.init_srand /\
+                                                                                                               // EvSentFinishedFirst(ci,true) /\
+                                                                                                               Authorize(Client,si) /\
+                                                                                                               (!p,g,gs,gc,r. si.pmsId = PmsId(PMS.DHPMS(p,g,gs,gc,r)) /\
+                                                                                                                             Sig.Safe(EpochSI(ci.id_in).serverSigAlg,Cert.SigPKCert(si.serverID,EpochSI(ci.id_in).serverSigAlg)) => HonestPMS(si.pmsId))
+
+                                                                                                                             }
+
+   | ServerCCSResume        of (ew:succEpoch * w:(;Id(ew))StatefulLHAE.writer * er:succEpoch * r:(;Id(er))StatefulLHAE.reader * (;EpochSI(ew))PRF.masterSecret * l:log){
+         NextEpochs(ci.id_in,ci.id_out,er,ew) /\
+         EpochWriter(ew) = DualRole(EpochWriter(er)) /\
+
+         ClientLogBeforeServerFinishedResume(EpochAI(ew),EpochSI(ew),l) /\
+
+         StatefulLHAE.History(Id(er),Reader,r) = StatefulPlain.EmptyHistory(Id(er)) /\
+         StatefulLHAE.History(Id(ew),Writer,w) = StatefulPlain.EmptyHistory(Id(ew)) /\
+         Authorize(Client,EpochSI(ew))}
+   | ServerFinishedResume   of e:succEpoch * w:(;Id(e))StatefulLHAE.writer * (;EpochSI(e))PRF.masterSecret * l:log{
+                                                                    ClientLogBeforeServerFinishedResume(EpochAI(e),EpochSI(e),l) /\
+                                                                    Pred(e) = ci.id_out /\
+                                                                    EpochWriter(e) = ci.role /\
+                                                                    IsSuccEpoch(ci.id_in) /\
+                                                                    EpochSI(ci.id_in) = EpochSI(e) /\
+                                                                    B(EpochCRand(ci.id_in)) = B(EpochCRand(e)) /\
+                                                                    B(EpochSRand(ci.id_in)) = B(EpochSRand(e)) /\
+                                                                    // EvSentFinishedFirst(ci,false) /\
+                                                                    Authorize(Client,EpochSI(e)) /\
+                                                                    StatefulLHAE.History(Id(e),Writer,w) = StatefulPlain.EmptyHistory(Id(e))}
+   | ClientWritingCCSResume of e:succEpoch * w:(;Id(e))StatefulLHAE.writer * (;EpochSI(e))PRF.masterSecret * sv:sVerifyData * l:log{
+          ClientLogBeforeClientFinishedResume(EpochAI(e),EpochSI(e),l) /\
+          Pred(e) = ci.id_out /\
+          EpochWriter(e) = ci.role /\
+          IsSuccEpoch(ci.id_in) /\
+          (SafeVD(EpochSI(ci.id_in)) => SentCCSAbbr(Server,EpochAI(ci.id_in))) /\
+          EpochSI(ci.id_in) = EpochSI(e) /\
+          B(EpochCRand(ci.id_in)) = B(EpochCRand(e)) /\
+          B(EpochSRand(ci.id_in)) = B(EpochSRand(e)) /\
+          // EvSentFinishedFirst(ci,false) /\
+          Authorize(Client,EpochSI(e)) /\
+          StatefulLHAE.History(Id(e),Writer,w) = StatefulPlain.EmptyHistory(Id(e)) }
+   | ClientWritingFinishedResume of cVerifyData * sVerifyData {Complete(ci) /\ IsSuccEpoch(ci.id_out) /\ IsSuccEpoch(ci.id_in)}
+
+   | ClientIdle             of cVerifyData * sVerifyData{IsSuccEpoch(ci.id_out) /\ IsSuccEpoch(ci.id_in)}
+
+type (;ci:ConnectionInfo) protoState = // Cannot use Client and Server, otherwise clashes with Role
+  | PSClient of (;ci) clientState{ci.role = Client}
+  | PSServer of (;ci) serverState{ci.role = Server}
+
+val clientState: ci:ConnectionInfo{ci.role = Client} -> c:(;ci) clientState -> p:(;ci) protoState{p = PSClient(c)}
+val serverState: ci:ConnectionInfo{ci.role = Server} -> c:(;ci) serverState -> p:(;ci) protoState{p = PSServer(c) /\ ci.role = Server}
+
+private type (;ci:ConnectionInfo) hs_state = {
+  (* I/O buffers *)
+  hs_outgoing    : bytes;                  (* outgoing data *)
+  hs_incoming    : bytes;                  (* partial incoming HS message *)
+  (* local configuration *)
+  poptions: config;
+  (* Session and DH DBs *)
+  sDB: SessionDB.t;
+  dhdb: DHDB.dhdb;
+  (* current handshake & session we are establishing *)
+  pstate: (;ci) protoState;
+}
+
+(*--- controlinterface *)
+(* Control Interface *)
+
+function val Config: ci:ConnectionInfo * s:(;ci)hs_state -> config
+private definition !ci,s. Config(ci,s) = s.poptions
+
+type (;ci:ConnectionInfo,c:config) nextState = s:(;ci)hs_state {Config(ci,s) = c}
+
+val init:  rl:Role  -> c:config  ->
+	(ci:ConnectionInfo * s:(;ci)hs_state){Config(ci,s) = c /\
+                ci.role = rl /\
+		IsInitEpoch(ci.id_in) /\
+		IsInitEpoch(ci.id_out)}
+
+val resume: nextSID:sessionID -> c:config  ->
+	(ci:ConnectionInfo * s:(;ci)hs_state){ Config(ci,s) = c /\
+                ci.role = Client /\
+		IsInitEpoch(ci.id_in) /\
+		IsInitEpoch(ci.id_out)}
+
+val rehandshake: ci:ConnectionInfo -> s:(;ci)hs_state -> c:config  ->
+	b:bool * s':(;ci)hs_state{
+		((b = true /\ Config(ci,s') = c) \/
+                 (b = false /\ Config(ci,s') = Config(ci,s)))}
+
+val rekey: ci:ConnectionInfo -> s:(;ci)hs_state -> c:config  ->
+	   b:bool * s':(;ci)hs_state{((b = true /\ Config(ci,s') = c) \/ (b = false /\ Config(ci,s') = Config(ci,s)))}
+
+val request:     ci:ConnectionInfo -> s:(;ci)hs_state -> c:config  ->
+                 b:bool * s':(;ci)hs_state{
+		((b = true /\ Config(ci,s') = c) \/ (b = false /\ Config(ci,s') = Config(ci,s)))}
+
+val getPrincipal:  ci:ConnectionInfo -> s:(;ci)hs_state -> string
+val invalidateSession: ci:ConnectionInfo -> s:(;ci)hs_state -> s':(;ci,Config(ci,s))nextState
+(*{SameStreams(ci,s,s')} *)
+
+val getFullEpochs: ci:ConnectionInfo -> si:SessionInfo -> ci':ConnectionInfo{
+    NextFullEpochs(ci.id_in,ci.id_out,ci'.id_in,ci'.id_out) /\
+    EpochSI(ci'.id_in) = si /\
+    ci.role = ci'.role }
+
+val getAbbrEpochs: ci:ConnectionInfo -> si:SessionInfo -> pe:epoch -> ai:abbrInfo -> ci':ConnectionInfo{
+    NextAbbrEpochs(ci.id_in,ci.id_out,ci'.id_in,ci'.id_out) /\
+    EpochAI(ci'.id_in) = ai /\
+    EpochSI(ci'.id_in) = si /\
+    ci.role = ci'.role }
+
+(*--- networkinterface *)
+(* Network Interface*)
+
+type (;ci:ConnectionInfo, hs:(;ci) hs_state) outgoing =
+  | OutIdle of s':(;ci,Config(ci,hs))nextState
+  | OutSome of (rg:range * f:(;Id(ci.id_out),HSFragment.EmptyStream(Id(ci.id_out)),rg)HSFragment.plain * s':(;ci,Config(ci,hs))nextState)
+  | OutCCS of  (rg:range * f:(;Id(ci.id_out),HSFragment.EmptyStream(Id(ci.id_out)),rg)HSFragment.plain *
+               ci':ConnectionInfo * cs:(;Id(ci'.id_out),Writer)StatefulLHAE.state * s':(;ci',Config(ci,hs))nextState)
+               { StatefulLHAE.History(Id(ci'.id_out),Writer,cs) = StatefulPlain.EmptyHistory(Id(ci'.id_out)) /\
+                 ci.id_out = Pred(ci'.id_out) /\ IsSuccEpoch(ci'.id_out) /\
+                 ci.id_in = ci'.id_in /\
+                 ci.role = ci'.role /\
+		 ci.id_rand = ci'.id_rand}
+  | OutFinished of (rg:range * f:(;Id(ci.id_out),HSFragment.EmptyStream(Id(ci.id_out)),rg)HSFragment.plain * s':(;ci,Config(ci,hs))nextState)
+  | OutComplete of (rg:range * f:(;Id(ci.id_out),HSFragment.EmptyStream(Id(ci.id_out)),rg)HSFragment.plain * s':(;ci,Config(ci,hs))nextState)
+                   {Complete(ci)}
+val next_fragment: ci:ConnectionInfo -> s:(;ci)hs_state -> (;ci,s)outgoing
+
+type (;ci:ConnectionInfo,c:config)incoming =
+  | InAck of (;ci,c)nextState
+  | InVersionAgreed  of (;ci,c)nextState * ProtocolVersion
+  | InQuery of Cert.chain * advice:bool * (;ci,c)nextState
+  | InFinished of (;ci,c)nextState
+  | InComplete of (;ci,c)nextState {Complete(ci)}
+  | InError of alertDescription * string * (;ci,c)nextState
+val recv_fragment: ci:ConnectionInfo -> s:(;ci)hs_state -> rg:range -> (;Id(ci.id_in),rg)HSFragment.fragment ->
+                   (;ci,Config(ci,s))incoming
+val authorize:     ci:ConnectionInfo -> s:(;ci)hs_state ->
+                   c:Cert.chain -> (;ci,Config(ci,s))incoming
+
+type (;ci:ConnectionInfo,c:config)incomingCCS =
+  | InCCSAck of ci':ConnectionInfo * cs:(;Id(ci'.id_in),Reader)StatefulLHAE.state * (;ci',c)nextState
+				{StatefulLHAE.History(Id(ci'.id_in),Reader,cs) = StatefulPlain.EmptyHistory(Id(ci'.id_in)) /\
+				ci.id_out = ci'.id_out /\
+				ci.id_in = Pred(ci'.id_in) /\
+                                IsSuccEpoch(ci'.id_in) /\
+				ci.role = ci'.role /\
+				ci.id_rand = ci'.id_rand}
+  | InCCSError of alertDescription * string * (;ci,c)nextState
+val recv_ccs     : ci:ConnectionInfo -> s:(;ci)hs_state -> rg:range -> (;Id(ci.id_in),rg)HSFragment.fragment ->
+                   (;ci,Config(ci,s))incomingCCS
+
+function val GetMinVersion: ci:ConnectionInfo * (;ci)hs_state -> ProtocolVersion
+private definition !ci,s. GetMinVersion(ci,s) = s.poptions.minVer
+val getMinVersion: ci:ConnectionInfo -> s:(;ci)hs_state ->
+	pv:ProtocolVersion{pv = GetMinVersion(ci,s)}
+
+(*--- end *)
+
+(* INTERNAL HS VERIFICATION (ALL THESE DEFS ARE PRIVATE) *)
+val extract:
+    si:SessionInfo ->
+	pms: PMS.pms { si.pmsId = PmsId(pms) } -> bytes ->
+	(si':SessionInfo * (;si) PRF.masterSecret){si' = si}
+
+// For the next two functions, the returned encpms is a ghost variable used to
+// avoid an existential.
+val clientKEXBytes_RSA: si:SessionInfo -> c:config ->
+	((p:RSAKey.pk * b:bytes * pms:(;p,c.maxVer)PMS.rsapms){
+           p = Cert.RSAPKCert(si.serverID) /\
+           (PMS.SafeRSA(p,c.maxVer) => PMS.HonestRSAPMS(p,c.maxVer,pms)) /\
+           (?encpms. B(b)=ClientKeyExchangeMsg_RSA(si.protocol_version,encpms))
+		}) Result
+
+val parseClientKEX_RSA: si:SessionInfo{si.serverID <> []} -> RSAKey.sk -> pv:ProtocolVersion -> config -> b:bytes ->
+	(
+         (pk:RSAKey.pk * (;pk,pv)PMS.rsapms){ pk = Cert.RSAPKCert(si.serverID) /\
+           ?encpms. ClientKeyExchangeMsg_RSA(si.protocol_version,encpms) = MessageBytes(HT_client_key_exchange,B(b))
+	}) Result
+
+val find_client_cert_sign: certType list -> Sig.alg list -> string list ->
+	ProtocolVersion -> Cert.hint -> Cert.sign_cert
+(*
+val getCertificateBytes: si:SessionInfo ->
+  cert_req:(Cert.chain * a:Sig.alg * (;a)Sig.skey) option ->
+  (b:bytes * cl:Cert.chain){
+    (si.client_auth = true /\  B(b) = CertificateMsg(cl)) \/
+    (si.client_auth = false /\ B(b) = [||])}
+
+val getCertificateVerifyBytes: si:SessionInfo -> (;si) PRF.masterSecret ->
+  cert_req:(Cert.chain * a:Sig.alg * (;a)Sig.skey) option ->
+  l:log{!cl,a,k. cert_req = Some((cl,a,k)) => Sig.Msg(a,Sig.PK(k),l)} ->
+  b:bytes{(!cl,a,k. (cert_req = Some((cl,a,k)) /\ si.client_auth = true) =>
+                    (?sign. B(b) = CertificateVerifyMsg(si.protocol_version,a,sign))) /\
+          ((cert_req = None \/ si.client_auth = false) => B(b) = [||])}
+*)
+
+val prepare_client_output_full_RSA: ci:ConnectionInfo{ci.role = Client} -> st:(;ci)hs_state ->
+	si:SessionInfo -> Cert.sign_cert ->
+        l:log{ClientLogAfterServerHelloDoneRSA(si,l) /\ Authorize(Client,si)} ->
+	(st':(;ci)hs_state * si':SessionInfo * (;si')PRF.masterSecret *
+         l':log{(UpdatesPmsClientID(si,si') /\
+               ?pv,r. si'.pmsId = PmsId(PMS.RSAPMS(Cert.RSAPKCert(si'.serverID),pv,r))) /\
+                ClientLogBeforeClientFinishedRSA(si',l') /\ Authorize(Client,si') /\
+                Config(ci,st) = Config(ci,st')}) Result
+val prepare_client_output_full_DHE: ci:ConnectionInfo{ci.role = Client} -> st:(;ci)hs_state ->
+	si:SessionInfo -> Cert.sign_cert ->
+	dhp:dhparams{DHGroup.PP(dhp.dhp,dhp.dhg)} -> gs:(;dhp.dhp,dhp.dhg)DHGroup.elt ->
+        l:log{ClientLogAfterServerHelloDoneDHE(si,l) /\ Authorize(Client,si)} ->
+	(st':(;ci)hs_state * si':SessionInfo * (;si')PRF.masterSecret *
+         l':log{ UpdatesPmsClientID(si,si') /\
+                 (?gc,r. si'.pmsId = PmsId(PMS.DHPMS(dhp.dhp,dhp.dhg,gs,gc,r)) /\
+                         (DH.HonestExponential(dhp.dhp,dhp.dhg,gs) => HonestPMS(si'.pmsId))) /\
+                 ClientLogBeforeClientFinishedDHE(si',l') /\ Authorize(Client,si') /\ Config(ci,st) = Config(ci,st')}) Result
+
+val on_serverHello_full: ci:ConnectionInfo{ci.role = Client} -> cr:crand -> l:log -> to_log:bytes ->
+         (pv:ProtocolVersion * sr:random * sid:sessionID * cs:cipherSuite * cm:Compression * ext:bytes){
+         ClientLogBeforeServerHello(cr,l) /\
+         B(to_log) = ServerHelloMsg(pv,sr,sid,cs,cm,ext)} ->
+	 negotiatedExtensions ->
+ 	 (;ci) protoState
+val parseMessageState: ci:ConnectionInfo -> hs:(;ci)hs_state ->
+	(hs':(;ci)hs_state * ht:HandshakeType * pl:bytes * to_log:bytes{Config(ci,hs) = Config(ci,hs') /\
+                                                                     B(to_log) = MessageBytes(ht,B(pl))}) option Result
+val recv_fragment_client: ci:ConnectionInfo{ci.role = Client} -> s:(;ci)hs_state -> ProtocolVersion option ->
+	(;ci,Config(ci,s))incoming
+
+val prepare_server_output_full_RSA: ci:ConnectionInfo{ci.role = Server} -> s:(;ci)hs_state -> si:SessionInfo ->
+	pv:ProtocolVersion -> Sig.alg list -> serverExtension list -> l:log{
+          ?csid,cs,cm,ex. B(l) = ClientHelloMsg(pv,si.init_crand,csid,cs,cm,ex)
+        }->
+	((s':(;ci)hs_state{Config(ci,s) = Config(ci,s')}) * ProtocolVersion) Result
+val prepare_server_output_full_DH: 'a -> 'b -> 'c -> 'd -> 'e -> res:('f Result){?z. res = Error(z)}
+val prepare_server_output_full_DHE: ci:ConnectionInfo{ci.role = Server} -> s:(;ci)hs_state -> si:SessionInfo ->
+	Sig.alg list -> serverExtension list -> l:log{
+          ?cpv,csid,cs,cm,ex. B(l) = ClientHelloMsg(cpv,si.init_crand,csid,cs,cm,ex)
+        }->
+	((s':(;ci)hs_state{Config(ci,s) = Config(ci,s')}) * ProtocolVersion) Result
+val prepare_server_output_full_DH_anon: ci:ConnectionInfo{ci.role = Server} -> s:(;ci)hs_state -> SessionInfo ->
+	serverExtension list -> log ->
+	((s':(;ci)hs_state{Config(ci,s) = Config(ci,s')}) * ProtocolVersion) Result
+val prepare_server_output_full: ci:ConnectionInfo{ci.role = Server} -> s:(;ci)hs_state -> si:SessionInfo ->
+	pv:ProtocolVersion -> serverExtension list -> l:log{
+          ?csid,cs,cm,ex. B(l) = ClientHelloMsg(pv,si.init_crand,csid,cs,cm,ex)
+        } ->
+	((s':(;ci)hs_state{Config(ci,s) = Config(ci,s')}) * ProtocolVersion) Result
+val negotiate: 'a list -> 'a list -> 'a option
+val prepare_server_output_resumption: ci:ConnectionInfo{ci.role = Server}  -> s:(;ci)hs_state -> cr:crand ->
+	cl:clientExtension list -> sid: sessionID -> (;sid,Server) SessionDB.StorableSession -> cVerifyData -> sVerifyData ->
+        l:log{?pv,cs,cm,ex. B(l) = ClientHelloMsg(pv,cr,sid,cs,cm,ex)} ->
+	s':(;ci)hs_state{Config(ci,s) = Config(ci,s')}
+val startServerFull: ci:ConnectionInfo{ci.role = Server} -> s:(;ci)hs_state ->
+  ch:(ProtocolVersion * crand * sessionID * cipherSuites * Compression list * bytes) ->// CHello
+  clientExtension list -> cVerifyData -> sVerifyData ->
+  l:log{!pv,cr,sid,cs,cms,ex. ch = (pv,cr,sid,cs,cms,ex) =>
+        (?cs',cm'. B(l) = ClientHelloMsg(pv,cr,sid,cs',cm',ex))} ->
+  ((s':(;ci)hs_state{Config(ci,s') = Config(ci,s)}) * ProtocolVersion) Result
+val recv_fragment_server: ci:ConnectionInfo{ci.role = Server} -> s:(;ci)hs_state -> pv:ProtocolVersion option ->
+	(;ci,Config(ci,s))incoming
+val enqueue_fragment: ci:ConnectionInfo -> s1:(;ci)hs_state -> bytes -> s2:(;ci)hs_state{Config(ci,s1) = Config(ci,s2)}

@@ -1,0 +1,110 @@
+(*
+ * Copyright 2015 INRIA and Microsoft Corporation
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *)
+
+module Bytes
+
+(* Binary representations, using variable-length byte arrays *)
+(* This module implementation is trusted, not verified *)
+
+type nat = n:int {0 <= n} // a convenient abbreviation
+type cbytes = byte array
+type bytes
+function val B: bytes -> byte array
+val empty_bytes: (b:bytes){B(b) = [||]}
+val abytes: b:byte array -> a:bytes{B(a) = b}
+val abyte: b:byte -> a:bytes{B(a) = [| b |]}
+val abyte2: b:(byte*byte) -> a:bytes{!b1,b2. b = (b1,b2) => B(a) = [| b1;b2 |]}
+
+val cbytes: a:bytes -> b:byte array{B(a) = b}
+val cbyte: a:bytes -> b:byte{B(a) = [| b |]}
+val cbyte2: a:bytes -> (b1:byte*b2:byte){B(a) = [| b1;b2 |]}
+
+(* Lifting concrete bitstring equality to logical equality over abstract bytes *)
+assume !b,b'. B(b) = B(b') => b = b'
+
+(* Lengths for arrays and lists *)
+
+function val BLength: byte array -> int
+function val Length: bytes -> int
+// lengths distribute over concatenations
+assume !x, y. BLength(x @| y) = BLength(x) + BLength(y)
+assume !x. Length(x) = BLength(B(x))
+assume !b. BLength(b) = 0 => b = [||]
+ask !b. Length(b) = 0 => B(b) = [||]
+
+val length: b:bytes -> l:nat {Length(b) = l}
+
+type (;l:nat) lbytes = b:bytes {Length(b) = l}
+
+val createBytes: l:int -> v:int { 0 <= v /\ v < 256 } -> (;l) lbytes
+
+val equalBytes: b0:bytes -> b1:bytes ->
+  r:bool {(r = true /\ B(b0) = B(b1)) \/ (r = false /\ B(b0) <> B(b1))}
+val xor: b0:bytes -> b1:bytes -> nb:nat -> b3:bytes{Length(b3) = nb}
+
+(* Array concatenation (append) *)
+(* we use the infix operator @| both concretely and in formulas *)
+
+val op_AtBar: b1:bytes -> b2:bytes -> b:bytes{B(b) = B(b1) @| B(b2)}
+
+val split:
+  b:bytes -> i:nat{Length(b) >= i} ->
+  b1:bytes * b2:bytes { Length(b1) = i /\ B(b) = B(b1) @| B(b2) }
+
+val split2: b:bytes -> i:nat -> j:nat  {Length(b) >= i+j} ->
+  b1:bytes * b2:bytes * b3:bytes { Length(b1)=i /\ Length(b2)=j /\
+      B(b) = B(b1) @| B(b2) @| B(b3)}
+
+// empty array is an identity for append
+assume !x. [||] @| x = x
+assume !x. x @| [||] = x
+
+// append is injective when using fixed lengths.
+assume !b1,b2,c1,c2.
+  (b1 @| b2 = c1 @| c2 /\ BLength(b1)=BLength(c1)) => (b1=c1 /\ b2=c2)
+
+assume !b1,b2,c1,c2.
+  (b1 @| b2 = c1 @| c2 /\ BLength(b2)=BLength(c2)) => (b1=c1 /\ b2=c2)
+
+// append is associative
+assume !b1,b2,b3. (b1 @| b2) @| b3 = b1 @| (b2 @| b3)
+
+(* integer multi-byte representations *)
+
+function val IntBytes: int * int -> bytes
+// we need stronger preconditions, e.g.
+//       (l=1 /\ 0 <= l /\ l < 256)
+//    \/ (l=2 /\ 0 <= l /\ l < 65536)
+//    \/ (l=4 /\ 0 <= l)
+val bytes_of_int: l:int -> i:int -> b:bytes{b = IntBytes(l,i)}
+val int_of_bytes: b:bytes {Length(b)<=8} -> i:nat
+  {b = IntBytes(Length(b),i) /\ (Length(b) = 1 => (0 <= i /\ i < 256)) }
+
+// the first argument is the length of the representation
+assume !l:int, i:int. Length(IntBytes(l,i)) = l
+// the representation is injective
+assume !l:int, i0:int, i1:int. IntBytes(l,i0) = IntBytes(l,i1) => i0=i1
+
+(* string representation, used in sample apps *)
+
+function val Utf8: string -> bytes
+val utf8:  s:string -> b:bytes { b = Utf8(s) }
+val iutf8: b:bytes -> s:string { b = Utf8(s) }
+
+// utf8 is injective
+assume !x:string, y:string. ( Utf8(x)=Utf8(y) => x = y )
+
+val hexString: b:bytes -> s:string

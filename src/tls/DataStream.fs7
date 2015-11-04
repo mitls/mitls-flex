@@ -1,0 +1,110 @@
+(*
+ * Copyright 2015 INRIA and Microsoft Corporation
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *)
+
+module DataStream
+
+(* Application-level bytes streams exchanged over TLS;            *)
+(* depending on the safety of their indexes,                      *)
+(* these streams are treated abstractly by our TLS implementation *)
+
+open TLSInfo
+open Bytes
+open Error
+open TLSError
+open Range
+
+/// Auxiliary functions for ranges
+
+private val min: a:nat -> b:nat -> c:nat{(a<=b /\ c=a) \/ (a>b /\ c=b)}
+
+val maxLHPad: id -> l:nat{l < fragmentLength} -> nat
+val splitRange: e:succEpoch -> r:range -> (r0:range * r1:range){r = Sum(r0,r1) /\ RangeFragment(Id(e),r0)}
+
+/// Bytestreams
+
+// we communicate deltas indexed by all preceding bytes on the stream.
+// TLS guarantees abstraction for every delta with a safe index;
+// this is the main basis for application-level integrity and secrecy
+
+// used only as a ghost index:
+// streams have no destructors, so they do not leak secrets
+// they are used abstractly by TLS, except that
+// their logical definition is needed for authentication in application code.
+private type (;e:epoch) stream = {sb:cbytes list}
+
+// the implementation of this type is application-specific
+// but it must provide a few functions to TLS, declared below.
+private type (;e:epoch, h:(;e)stream, r:range) delta = {contents: (;r) rbytes}
+
+function val Payload: e:epoch * s:(;e)stream * r:range * (;e,s,r)delta -> cbytes
+private definition !e,s,r,d. Payload(e,s,r,d) = B(d.contents)
+
+function val EmptyStream: e:epoch -> (;e)stream
+private definition !e. EmptyStream(e) = {sb = []}
+
+function val ExtendStream: 'a * 'b * 'c * 'd -> 'e
+private definition !e,s,r,b. ExtendStream(e,s,r,b) = {sb = b :: s.sb }
+
+function val ExtendStreamDelta: 'a * 'b * 'c * 'd -> 'e
+private definition !e,s,r,d. ExtendStreamDelta(e,s,r,d) = ExtendStream(e,s,r,B(d.contents))
+
+ask !e,e',s,s',r,r',d,d'.
+   Payload(e,s,r,d) = Payload(e',s',r',d') =>
+   ExtendStreamDelta(e,s,r,d) = ExtendStreamDelta(e,s,r,d')
+
+function val StreamBytes: e:epoch * (;e)stream -> cbytes
+private definition
+   (!e,s. (s.sb = []   => StreamBytes(e,s) = [||]) ) /\
+   (!e,s,h,t. (s.sb = h::t => StreamBytes(e,s) = (StreamBytes(e,{sb=t}) @| h)) )
+
+ask !e.       StreamBytes(e,EmptyStream(e)) = [||]
+ask !e,s,r,b. StreamBytes(e,ExtendStream(e,s,r,b)) = ( StreamBytes(e,s) @| b )
+ask !e,s,r,d. StreamBytes(e,ExtendStreamDelta(e,s,r,d)) = ( StreamBytes(e,s) @| Payload(e,s,r,d) )
+
+// The following two functions are
+// used only by the application
+// They are never called from TLS.
+val createDelta:
+  e:epoch -> s:(;e) stream -> r:range ->
+  b:(;r) rbytes -> c: (;e,s,r) delta
+val deltaBytes:
+  e:epoch -> s:(;e) stream -> r:range ->
+  c: (;e,s,r) delta -> b:(;r) rbytes
+
+// These functions are used by TLS:
+val init: e:epoch -> s:(;e)stream{s=EmptyStream(e)}
+val append:
+  e:epoch -> s: (;e) stream -> r:range ->
+  d:(;e,s,r) delta ->
+  s':(;e) stream{s' = ExtendStreamDelta(e,s,r,d)}
+
+val deltaPlain:
+  e:epoch{not Auth(e)} -> s:(;e) stream -> r:range ->
+  b:(;r) rbytes -> d: (;e,s,r) delta {B(b) = Payload(e,s,r,d)}
+val deltaRepr:
+  e:epoch{not Safe(e)} -> s:(;e) stream -> r:range ->
+  d: (;e,s,r) delta -> b:(;r) rbytes{B(b) = Payload(e,s,r,d)}
+
+val split: e:epoch -> s:(;e) stream ->
+  r0:range -> r1:range -> d:(;e,s,Sum(r0,r1)) delta ->
+  (d0:(;e,s,r0) delta * d1:(;e,ExtendStreamDelta(e,s,r0,d0),r1) delta){
+	Payload(e,s,Sum(r0,r1),d) =
+		Payload(e,s,r0,d0) @| Payload(e,ExtendStreamDelta(e,s,r0,d0),r1,d1)
+  }
+
+val widen: e:epoch -> s:(;e) stream ->
+  r0:range -> r1:range{SubRange(r0,r1)} -> d0:(;e,s,r0) delta ->
+  d1:(;e,s,r1) delta{Payload(e,s,r0,d0) = Payload(e,s,r1,d1)}

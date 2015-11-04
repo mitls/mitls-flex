@@ -1,0 +1,122 @@
+(*
+ * Copyright 2015 INRIA and Microsoft Corporation
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *)
+
+module Sig
+
+open Bytes
+open TLSConstants
+
+(* TLS uses three signatures algorithms, together with hash algorithm.
+   We verify TLS security relative to those *combinations* of algorithms
+   that provide agile CMA-security, as specified in this interface.
+   However, none of them are known to be CMA-secure in the standard model
+   under an assumption much weaker than "This scheme is secure".
+
+   This interface is adapted from the one described in CCS'11:
+
+       Cedric Fournet, Markulf Kohlweiss, Pierre-Yves Strub: Modular
+       code-based cryptographic verification. ACM Conference on Computer
+       and Communications Security 2011: 341-350
+
+   Its ideal implementation is verified.
+
+   ********************** Cryptographic agility ****************************
+
+   note that the same key may be used with different hashes.
+   so we require some joint security assumption for them
+
+   TLS 1.2 provides explicit support for it: http://tools.ietf.org/html/rfc5246#section-1.2
+         - Substantial cleanup to the client's and server's ability to
+           specify which hash and signature algorithms they will accept.
+           Note that this also relaxes some of the constraints on signature
+           and hash algorithms from previous versions of TLS.
+
+   Summary of the extension logic for the client:
+    - specific to TLS 1.2
+    - cs indicates sigAlg but not hashAlg, but "this is historical"
+    - extension indicates supported algs (not necessarily following the cs)
+    - no extension == client supports exactly the default alg
+
+   let defaultAlg cs =
+     let a =
+       match cs with
+       | RSA | DH_RSA | DHE_RSA | RSA_PSK  | ECDH_RSA | ECDHE_RSA  -> RSA
+       | DH_DSS | DHE_DSS                                          -> DSA
+       | ECDH_ECDSA | ECDHE_ECDSA                                  -> ECDSA in
+     (a, SHA1)
+
+   from the viewpoint of cryptographic agility the relaxed constraints lead to
+   stronger assumptions.
+ ***************************************************************************)
+
+type alg   = sigHashAlg // defined as sigAlg * hashAlg in TLSConstants
+
+type text = bytes
+type (;a:alg) sigv = bytes
+  // we could be more precise and specify their size: 36 with RSA, 20 with DSA
+
+private val sigalg_of_skeyparams: CoreSig.sigskey -> TLSConstants.sigAlg
+private val sigalg_of_pkeyparams: CoreSig.sigpkey -> TLSConstants.sigAlg
+
+//********************** Ideal Functionality for Signing ***********************
+
+predicate Strong of alg
+private definition !a. Strong(a) <=> (a = (SA_DSA,SHA384))
+
+private type (;a:alg) pkey = {pkey : CoreSig.sigpkey * hashAlg }
+//#begin-abstraction
+private type (;a:alg) skey = {skey: CoreSig.sigskey * hashAlg; pub: (;a) pkey}
+//#end-abstraction
+
+function val PK: 'a -> 'b // a:alg * (;a)skey -> vkey
+private definition !sk. PK(sk) = sk.pub
+
+// assumed by Sig.gen; not implying strong Strong(a)
+// intuitively, we may provision any other dishonest keys for the adversary
+predicate type pred = Honest of a:alg * (;a) pkey
+
+predicate Safe of a:alg * (;a) pkey
+definition !a,pk. Safe(a,pk) <=> (Strong(a) /\ Honest(a,pk))
+
+val gen :    a:alg -> pk:(;a) pkey * sk:(;a) skey { pk = PK(sk) /\ Honest(a,pk) }
+val coerce:  a:alg -> p:(;a) pkey{not Honest(a,p)} -> CoreSig.sigskey -> s:(;a)skey{p = PK(s)}
+val leak:    a:alg -> s:(;a) skey{not Honest(a,PK(s))} -> CoreSig.sigskey
+val create_pkey: a:alg -> CoreSig.sigpkey -> (;a)pkey
+
+val pk_of:   a:alg -> sk:(;a) skey -> pk:(;a) pkey{pk = PK(sk)}
+val strong:  a:alg -> b:bool{(b = true /\ Strong(a)) \/ (b = false /\ not Strong(a))}
+val honest:  a:alg -> pk: (;a) pkey -> b:bool{b = true <=> Honest(a,pk)}
+
+// user-defined logical payload of signed texts
+predicate Msg of a:alg * (;a)pkey * text
+
+val sign:    a:alg -> sk:(;a) skey -> t:text{Msg(a,PK(sk),t)} -> (;a) sigv
+val verify:  a:alg -> pk:(;a) pkey -> t:text -> m:(;a) sigv ->
+  b:bool {(b=true /\ Strong(a) /\ Honest(a,pk)) => Msg(a,pk,t)}
+
+//-------- the rest is internal to Sig.fs
+
+type honest_entry = (a:alg * sk:(;a)skey * pk:(;a)pkey{Honest(a,pk) /\ pk = PK(sk)})
+private val honest_log: (honest_entry list) ref
+private val has_pk: a:alg -> pk:(;a)pkey ->
+          (honest_entry list) -> b:bool{(b = true => Honest(a,pk))}
+
+private val consHonestLog: a:alg -> sk:(;a)skey -> pk:(;a) pkey{Honest(a,pk) /\ pk = PK(sk)} -> (honest_entry list) -> honest_entry list
+
+type entry = (a:alg * pk:(;a) pkey * t:text){ Msg(a,pk,t) }
+private val log: entry list ref
+private val consLog: a:alg -> pk:(;a) pkey -> t:text {Msg(a,pk,t)} -> entry list -> entry list
+private val has_mac: a:alg -> pk:(;a) pkey -> t:text -> entry list -> b:bool{b = true => Msg(a,pk,t)}

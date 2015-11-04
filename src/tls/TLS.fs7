@@ -1,0 +1,184 @@
+(*
+ * Copyright 2015 INRIA and Microsoft Corporation
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *)
+
+module TLS
+
+open Error
+open TLSError
+open Bytes
+open TLSInfo
+open DataStream (* application-specific module *)
+open AppData
+open Dispatch
+
+// Some invariants ensuring our library never buffers user data
+type Connection = c:Dispatch.Connection{CnBuf_o(c) = None}
+type (;c:Connection) nextCn = c':Connection {NextCn(c,c')}
+
+(* Event-driven interface *)
+
+type (;c:Connection) ioresult_i =
+| ReadError of alertDescription option * string
+  // We encountered an error while reading, so the connection dies.
+  // we return the fatal alert we may have sent, if any,
+  // or None in case of an internal error.
+
+| Close of Tcp.NetworkStream {
+	Auth(ConnectionEpochIn(c)) => EvClose(CnInfo(c).id_in, Bytes_i(c))
+  }
+  // We received an alert notifying the normal closure of the connection;
+  // we learn that we have read everything sent by our peer,
+  // and we get back the underlying TCP connection.
+
+| Fatal of a:alertDescription {
+	Auth(ConnectionEpochIn(c)) => EvFatal(CnInfo(c).id_in, a, Bytes_i(c))
+  }
+  // We received an alert notifying the abnornal closure of the connection by our peer
+  // We learn that we have read everything sent by our peer.
+
+| Warning of c':(;c) nextCn * a:alertDescription {
+	Extend(c,c') /\ Auth(ConnectionEpochIn(c)) => EvWarning(CnInfo(c).id_in, a, Bytes_i(c))
+  }
+  // We received a warning (at this point in the input stream)
+
+| CertQuery of c':(;c) nextCn * query * advice:bool {Extend(c, c')}
+  // We received the peer certificates for the next epoch, to be authorized before proceeding.
+  // "advice" is what the Windows certificate store said about this certificate.
+
+| CompletedFirst of c':Connection {
+  // Handshake is completed, and we have already sent our finished message,
+  // so only the incoming epoch changes
+       Role(c') = Role(c)
+	/\ Rnd(c') = Rnd(c)
+	/\ Config(c') = Config(c)
+	/\ ConnectionEpochIn(c) = Pred(ConnectionEpochIn(c'))
+	/\ Bytes_i(c') = B(empty_bytes)
+	/\ EvClose(CnInfo(c).id_in, Bytes_i(c))
+	/\ Handshake.Complete(CnInfo(c'))
+	/\ Bytes_o(c') = Bytes_o(c)
+	/\ ConnectionEpochOut(c') = ConnectionEpochOut(c)
+	}
+
+| CompletedSecond of c':Connection {
+  // Handshake is completed, and we sent our finished message last,
+  // so all epochs change
+       Role(c') = Role(c)
+	/\ Rnd(c') = Rnd(c)
+	/\ Config(c') = Config(c)
+	/\ ConnectionEpochIn(c) = Pred(ConnectionEpochIn(c'))
+	/\ Bytes_i(c') = B(empty_bytes)
+	/\ EvClose(CnInfo(c).id_in, Bytes_i(c))
+	/\ Handshake.Complete(CnInfo(c'))
+	/\ Bytes_o(c') = B(empty_bytes)
+	/\ ConnectionEpochOut(c) = Pred(ConnectionEpochOut(c'))
+	}
+
+| Read of c':(;c) nextCn * d:(;ConnectionEpochIn(c),CnStream_i(c)) msg_i {
+	Extend_i(c,c',d) /\ (Auth(ConnectionEpochIn(c)) => EvWrite(CnInfo(c).id_in, Bytes_i(c')))
+  }
+  // We received a data fragment, appended to the input stream)
+
+| DontWrite of c':Connection {
+	   Role(c') = Role(c)
+	/\ Rnd(c') = Rnd(c)
+	/\ Config(c') = Config(c)
+	/\ ConnectionEpochIn(c') = ConnectionEpochIn(c)
+	/\ Bytes_i(c') = Bytes_i(c)
+	/\ Bytes_o(c') = B(empty_bytes)
+	/\ ConnectionEpochOut(c) = Pred(ConnectionEpochOut(c'))
+    }
+
+type (;c:Connection,d:(;ConnectionEpochOut(c),CnStream_o(c)) msg_o) ioresult_o =
+| WriteError of alertDescription option * string
+  // We encountered an error while writing;
+  // we return the fatal alert we may have sent, if any,
+  // or None in case of an internal error.
+
+| WriteComplete of c':(;c) nextCn {Extend_o(c,c',d) /\ ExtendS_o(c,c',d)}
+  // We wrote the message in full. appended to the output stream
+
+| MustRead of c':Connection {
+		Role(c') = Role(c)
+	 /\ Rnd(c') = Rnd(c)
+     /\ Config(c') = Config(c)
+	 /\ ConnectionEpochIn(c') = ConnectionEpochIn(c)
+     /\ Bytes_i(c') = Bytes_i(c)
+	 /\ Bytes_o(c') = B(empty_bytes)
+	 /\ ConnectionEpochOut(c) = Pred(ConnectionEpochOut(c'))
+	}
+
+val read: c:Connection -> (;c) ioresult_i
+
+val write: c:Connection{CanWrite(CnInfo(c))} -> d:(;ConnectionEpochOut(c),CnStream_o(c)) msg_o -> (;c,d) ioresult_o
+// On the write side, the following events may be generated:
+// - Write(ki,Bytes_o(c'))
+// - Close(ki,Bytes_o(c))
+// WriteError reports a local error
+// WriteComplete reports write completion
+// WritePartial reports partial write completion, and returns the rest
+// MustRead signals that the connection cannot be used anymore for writing until a new handshake completes.
+// (it may be a bit too restrictive)
+
+val full_shutdown: c:Connection ->
+	c':Connection{ Config(c') = Config(c) /\ Role(c') = Role(c) /\
+		Rnd(c') = Rnd(c) /\
+		ConnectionEpochIn(c') = ConnectionEpochIn(c) /\ Extend(c,c')
+		// Note: we cannot write anymore
+		}
+val half_shutdown: c:Connection -> unit
+
+val connect : Tcp.NetworkStream -> c:config -> (;Client,c) nullCn
+val resume  : Tcp.NetworkStream -> sid:sessionID ->  c:config -> (;Client,c) nullCn
+// even if the server declines, we authenticate the client's intent to resume from this sid.
+
+val rekey: c:Connection {Role(c) = Client} -> conf:config ->
+	(b:bool * c':Connection) {
+		   Extend(c,c')
+		/\ CnInfo(c') = CnInfo(c)
+		/\ (   (b = false  /\ Config(c') = Config(c))
+			\/ (b = true   /\ Config(c') = conf    ))
+	}
+
+val rehandshake: c:Connection {Role(c) = Client} -> conf:config ->
+	(b:bool * c':Connection) {
+		   Extend(c,c')
+		/\ CnInfo(c') = CnInfo(c)
+		/\ (   (b = false /\ Config(c') = Config(c))
+			\/ (b = true  /\ Config(c') = conf    ))
+	}
+
+val request: c:Connection {Role(c) = Server} -> conf:config ->
+	(b:bool * c':Connection) {
+		   Extend(c,c')
+		/\ CnInfo(c') = CnInfo(c)
+		/\ (   (b = false /\ Config(c') = Config(c))
+			\/ (b = true  /\ Config(c') = conf    ))
+	}
+
+val accept: Tcp.TcpListener -> c:config -> (;Server,c) nullCn
+val accept_connected: Tcp.NetworkStream -> c:config -> (;Server,c) nullCn
+
+// we echo the query so that we have an explicit user decision to blame.
+val authorize : c:Connection -> q:query-> (;c)ioresult_i
+val refuse    : c:Connection -> q:query -> unit
+
+val getSessionInfo: k:succEpoch -> s:SessionInfo{s = EpochSI(k)}
+
+val getEpochIn : c:Connection -> k:epoch{k = ConnectionEpochIn (c)}
+val getEpochOut: c:Connection -> k:epoch{k = ConnectionEpochOut(c)}
+
+val getInStream : c:Connection -> s:(;ConnectionEpochIn (c)) stream{s = CnStream_i(c)}
+val getOutStream: c:Connection -> s:(;ConnectionEpochOut(c)) stream{s = CnStream_o(c)}

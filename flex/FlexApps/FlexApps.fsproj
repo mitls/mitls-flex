@@ -1,0 +1,158 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>d9eb67b6-c441-4508-afc5-faeef6e3b2a6</ProjectGuid>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>FlexApps</RootNamespace>
+    <AssemblyName>FlexApps</AssemblyName>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <TargetFSharpCoreVersion>4.3.1.0</TargetFSharpCoreVersion>
+    <Name>FlexApps</Name>
+  </PropertyGroup>
+  <PropertyGroup>
+    <MinimumVisualStudioVersion Condition="'$(MinimumVisualStudioVersion)' == ''">11</MinimumVisualStudioVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x86' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <Tailcalls>false</Tailcalls>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <WarningLevel>3</WarningLevel>
+    <DocumentationFile>bin\Debug\FlexApps.XML</DocumentationFile>
+    <Prefer32Bit>true</Prefer32Bit>
+    <PlatformTarget>x86</PlatformTarget>
+    <NoWarn>62</NoWarn>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x86' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <Tailcalls>true</Tailcalls>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <WarningLevel>3</WarningLevel>
+    <DocumentationFile>bin\Release\FlexApps.XML</DocumentationFile>
+    <Prefer32Bit>false</Prefer32Bit>
+    <PlatformTarget>x86</PlatformTarget>
+    <NoWarn>62</NoWarn>
+  </PropertyGroup>
+  <Choose>
+    <When Condition="'$(OS)' == 'Unix'">
+      <PropertyGroup>
+        <!-- <FSharpTargetsPath>$(MSBuildExtensionsPath32)\FSharp\1.0\Microsoft.FSharp.Targets</FSharpTargetsPath> -->
+        <FSharpTargetsPath>$(MSBuildExtensionsPath32)\..\Microsoft F#\v4.0\Microsoft.FSharp.Targets</FSharpTargetsPath>
+      </PropertyGroup>
+    </When>
+    <Otherwise>
+      <Choose>
+        <When Condition="'$(VisualStudioVersion)' == '11.0'">
+          <PropertyGroup>
+            <FSharpTargetsPath>$(MSBuildExtensionsPath32)\..\Microsoft SDKs\F#\3.0\Framework\v4.0\Microsoft.FSharp.Targets</FSharpTargetsPath>
+          </PropertyGroup>
+        </When>
+        <Otherwise>
+          <PropertyGroup>
+            <FSharpTargetsPath>$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\FSharp\Microsoft.FSharp.Targets</FSharpTargetsPath>
+          </PropertyGroup>
+        </Otherwise>
+      </Choose>
+    </Otherwise>
+  </Choose>
+  <Import Project="$(FSharpTargetsPath)" />
+  <Target Name="AfterBuild" Condition="'$(OS)' == 'Windows_NT'">
+    <!-- <Copy SourceFiles="$(ProjectDir)\..\..\libs\DB\lib\$(PlatformName)\SQLite.Interop.dll" DestinationFolder="$(OutDir)" /> -->
+    <Copy SourceFiles="$(ProjectDir)\..\..\3rdparty\libeay32-$(PlatformName).dll" DestinationFiles="$(OutDir)/libeay32.dll" />
+  </Target>
+  <Target Name="AfterClean">
+    <CreateItem Include="$(OutDir)\*.dll;$(OutDir)\*.exe;$(OutDir)\*.mdb;$(OutDir)\*.pdb">
+      <Output ItemName="ToDel" TaskParameter="Include" />
+    </CreateItem>
+    <Delete Files="$(OutDir)\$(Name).XML" />
+    <Delete Files="@(ToDel)" />
+  </Target>
+  <ItemGroup>
+    <None Include="App.config" />
+    <Compile Include="Attack_Alert.fs" />
+    <Compile Include="Attack_Alert_Warning.fs" />
+    <Compile Include="Attack_FragmentClientHello.fs" />
+    <Compile Include="Attack_EarlyCCS.fs" />
+    <Compile Include="Attack_EarlyResume.fs" />
+    <Compile Include="Attack_TripleHandshake.fs" />
+    <Compile Include="Attack_SKIP_EarlyFinished.fs" />
+    <Compile Include="Attack_SmallSubgroup_DHE.fs" />
+    <Compile Include="Attack_Logjam.fs" />
+    <Compile Include="SmackTLS.fs" />
+    <Compile Include="Handshake_full_RSA.fs" />
+    <Compile Include="Handshake_full_DHE.fs" />
+    <Compile Include="Handshake_full_ECDHE.fs" />
+    <Compile Include="Handshake_resumption.fs" />
+    <Compile Include="Handshake_tls13.fs" />
+    <Compile Include="OpenSSL_tests.fs" />
+    <Compile Include="Script.fs" />
+    <Compile Include="Parsing.fs" />
+    <Compile Include="Application.fs" />
+    <Content Include="NLog.config">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="packages.config" />
+    <None Include="NLog.xsd" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\tls\tls.fsproj">
+      <Name>tls</Name>
+      <Project>{7283c0ef-3c40-495d-9969-79cb71b3aacc}</Project>
+      <Private>True</Private>
+    </ProjectReference>
+    <Reference Include="BouncyCastle.Crypto">
+      <HintPath>..\..\VS\packages\BouncyCastle.1.7.0\lib\Net40-Client\BouncyCastle.Crypto.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="mscorlib" />
+    <Reference Include="FSharp.Core, Version=$(TargetFSharpCoreVersion), Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="NLog">
+      <HintPath>..\..\VS\packages\NLog.3.1.0.0\lib\net45\NLog.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="NLog.Xml">
+      <HintPath>..\..\VS\packages\NLog.Xml.3.1.0.30\lib\net45\NLog.Xml.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Data.SQLite">
+      <HintPath>..\..\VS\packages\System.Data.SQLite.Core.1.0.96.0\lib\net45\System.Data.SQLite.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System.Numerics" />
+    <ProjectReference Include="..\..\libs\CoreCrypto\CoreCrypto.fsproj">
+      <Name>CoreCrypto</Name>
+      <Project>{6d4e3f46-dbf9-473b-93ba-58614114aa57}</Project>
+      <Private>True</Private>
+    </ProjectReference>
+    <ProjectReference Include="..\..\flex\FlexTLS\FlexTLS.fsproj">
+      <Name>FlexTLS</Name>
+      <Project>{c4e94ba9-db5a-46c3-a0c1-c729b9f513c5}</Project>
+      <Private>True</Private>
+    </ProjectReference>
+    <ProjectReference Include="..\..\libs\Platform\Platform.fsproj">
+      <Name>Platform</Name>
+      <Project>{408e6f53-363a-4c58-9808-84a0b526324b}</Project>
+      <Private>True</Private>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="..\..\VS\packages\System.Data.SQLite.Core.1.0.96.0\build\net45\System.Data.SQLite.Core.targets" Condition="Exists('..\..\VS\packages\System.Data.SQLite.Core.1.0.96.0\build\net45\System.Data.SQLite.Core.targets')" />
+  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <ErrorText>This project references NuGet package(s) that are missing on this computer. Enable NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
+    </PropertyGroup>
+    <Error Condition="!Exists('..\..\VS\packages\System.Data.SQLite.Core.1.0.96.0\build\net45\System.Data.SQLite.Core.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\..\VS\packages\System.Data.SQLite.Core.1.0.96.0\build\net45\System.Data.SQLite.Core.targets'))" />
+  </Target>
+</Project>

@@ -1,0 +1,733 @@
+(*
+ * Copyright 2015 INRIA and Microsoft Corporation
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *)
+
+module TLSConstants
+
+(* Identifiers and sizes for the TLS crypto algorithms
+   This file also declares those that are assumed to be strong
+   (such assumption are on both the algorithms and their implementation) *)
+
+(* remark: this file is part of the public API; it could expose less internal details
+           of TLS; strength assumptions could also be grouped elsewhere. *)
+
+open Bytes
+open Error
+open TLSError
+
+(** Some algorithms depend on the TLS protocol version *)
+
+type PreProtocolVersion =
+    | SSL_3p0
+    | TLS_1p0
+    | TLS_1p1
+    | TLS_1p2
+
+predicate IsProtocolVersion of PreProtocolVersion
+definition
+  !p. IsProtocolVersion(p)
+    <=> (p = SSL_3p0 \/ p = TLS_1p0 \/ p = TLS_1p1 \/ p = TLS_1p2)
+
+type ProtocolVersion = p:PreProtocolVersion{ IsProtocolVersion(p) }
+
+(** Not abstract, but meant to be used only by crypto modules and CipherSuites *)
+
+type blockCipher =
+    | TDES_EDE
+    | AES_128
+    | AES_256
+
+type encAlg =
+    | CBC_Stale of blockCipher (* old style, using prior last block as IV *)
+    | CBC_Fresh of blockCipher (* new style, fresh IV for every fragment *)
+    | Stream_RC4_128
+
+predicate IND_CPA of encAlg (* strong algorithms for the IND-CPA encryption game *)
+//#begin-cipherAssert
+// some reasonable cryptographic assumptions if you believe that you are sufficiently
+// protected against timing attacks (see: http://www.isg.rhul.ac.uk/tls/Lucky13.html )
+// assume(IND_CPA(CBC_Fresh(AES_128)))
+// assume(IND_CPA(CBC_Fresh(AES_256)))
+// some unreasonable cryptographic assumptions:
+// assume(IND_CPA(Stream_RC4_128)) (see: http://vnhacker.blogspot.co.uk/2011/09/beast.html )
+// assume(IND_CPA(CBC_Stale(AES_256))) (see: http://www.isg.rhul.ac.uk/tls/ )
+//#end-cipherAssert
+
+(** Algorithms for the MAC module *)
+
+type hashAlg =
+    | NULL
+    | MD5SHA1
+    | MD5
+    | SHA
+    | SHA256
+    | SHA384
+
+type macAlg =
+    | MA_HMAC of hashAlg
+    | MA_SSLKHASH of hashAlg
+
+predicate INT_CMA_M of macAlg  (* Strong algorithms for the INT-CMA forgery game *)
+// some reasonable cryptogaphic assumptions:
+ assume INT_CMA_M(MA_HMAC(SHA256)) //used in MAC
+ assume INT_CMA_M(MA_HMAC(SHA))
+// assume(INT_CMA_M(MA_HMAC(SHA384)))
+// some unreasonable assumption
+// assume(INT_CMA_M(MD5))
+
+(** Signing algorithms for the Sig module *)
+
+type sigAlg =
+    | SA_RSA
+    | SA_DSA
+    | SA_ECDSA
+
+type sigHashAlg   = sigAlg * hashAlg
+
+predicate INT_CMA_S of sigAlg * hashAlg * hashAlg list
+// INT_CMA_S(s,h,hs) indicates that signing hashes using (s,h) is INT-CMA,
+// even if we also use the key to sign hashes using (s,h') where h' in hs
+//
+// some reasonable cryptographic assumptions:
+// assume(INT_CMA_S(SA_DSA,SHA,[SHA]))
+// assume(INT_CMA_S(SA_ECDSA,SHA,[SHA]))
+
+(** algorithms for the record protocol *)
+
+type aeadAlg =
+    | AES_128_GCM
+    | AES_256_GCM
+
+type aeAlg = // for specification of INT_CTXT predicate
+    | MACOnly of macAlg
+    | MtE of encAlg * macAlg
+    | AEAD of aeadAlg * macAlg // macAlg is for the PRF
+
+predicate INT_CTXT of ProtocolVersion * aeAlg
+// some reasonable assumptions:
+// assume INT_CTXT(TLS_1p2,MtE(CBC_Fresh(AES_128),MA_HMAC(SHA256)))
+// This follows from Paterson et al.
+// assume !e,m. PRF(m) /\ SPRP(e) => INT_CTXT(TLS_1p2,MtE(CBC_Fresh(e),m))
+
+predicate StrongAEAlg of ProtocolVersion * aeAlg
+definition !pv,ae. StrongAEAlg(pv,ae) <=>
+  (?e,m. ae = MtE(e,m) /\
+         IND_CPA(e) /\
+         INT_CMA_M(m) /\
+         INT_CTXT(pv,ae) )
+
+ask !ae,m,pv. ae=MACOnly(m) => not StrongAEAlg(pv,ae)
+
+(** algorithms for the Handshake *)
+
+// all these kex have server auth & optional client auth,
+// except for anon which has none of them
+type kexAlg =
+    | RSA     // --> client-generated pms encrypted using server's public key
+    | DH_DSS  // <-- Certificate(DSA containing g^y); --> g^x then pms = g^xy
+    | DH_RSA  // idem with an RSA cert
+    | DHE_DSS // <-- Certificate(DSA); ServerKeyExchange({Cr,Sr,p,g,g^y}signed); --> g^x then pms = g^xy
+    | DHE_RSA // idem with an RSA cert
+    | ECDHE_RSA
+    | ECDHE_ECDSA
+    | DH_anon // --> g^x ; <-- g^y then pms = g^xy ; secure only against passive adversaries
+
+predicate PRF of ProtocolVersion * macAlg
+predicate KEF_DH of ProtocolVersion * macAlg
+predicate KEF_RSA of ProtocolVersion * macAlg
+
+// In the crypto'14 paper, these are global assumptions.
+// In our code, we have some extra key agility:
+// we get StrongHS for the rest even if one of them is false.
+
+(* With F7, we need to declare both logical functions for lengths, constants, etc
+   and their concrete F# implementations, typechecked against these logical functions. *)
+
+function val SigAlgBytes: sigAlg -> cbytes
+private definition
+    (SigAlgBytes(SA_RSA)   = [|1uy|]) /\
+    (SigAlgBytes(SA_DSA)   = [|2uy|]) /\
+    (SigAlgBytes(SA_ECDSA) = [|3uy|])
+
+val sigAlgBytes: s:sigAlg -> b:bytes{B(b)=SigAlgBytes(s)}
+val parseSigAlg: b:bytes -> (s:sigAlg{B(b)=SigAlgBytes(s)}) Result
+function val HashAlgBytes: hashAlg -> cbytes
+definition
+    HashAlgBytes(MD5)    = [|1uy|] /\
+    HashAlgBytes(SHA)    = [|2uy|] /\
+    HashAlgBytes(SHA256) = [|4uy|] /\
+    HashAlgBytes(SHA384) = [|5uy|]
+
+val hashAlgBytes: h:hashAlg -> b:bytes{B(b)=HashAlgBytes(h)}
+val parseHashAlg: b:bytes -> (h:hashAlg{B(b)=HashAlgBytes(h)}) Result
+
+function val EncKeySize: encAlg -> nat
+assume !x. EncKeySize(x) >= 0
+private definition EncKeySize(Stream_RC4_128)      = 16
+private definition EncKeySize(CBC_Stale(TDES_EDE)) = 24
+private definition EncKeySize(CBC_Stale(AES_128))  = 16
+private definition EncKeySize(CBC_Stale(AES_256))  = 32
+private definition EncKeySize(CBC_Fresh(TDES_EDE)) = 24
+private definition EncKeySize(CBC_Fresh(AES_128))  = 16
+private definition EncKeySize(CBC_Fresh(AES_256))  = 32
+val encKeySize: a:encAlg -> l:nat{l=EncKeySize(a)}
+
+function val BlockSize: blockCipher -> nat
+assume !x. BlockSize(x) > 0
+private definition BlockSize(TDES_EDE)	=  8
+private definition BlockSize(AES_128)	= 16
+private definition BlockSize(AES_256)	= 16
+val blockSize: a:blockCipher -> l:nat {l=BlockSize(a)}
+
+(* unused for now:
+function val EncAlgBlockSize: encAlg -> nat
+assume !x. EncAlgBlockSize(x) >= 0
+private definition !b. EncAlgBlockSize(CBC_Stale(b)) = BlockSize(b)
+private definition !b. EncAlgBlockSize(CBC_Fresh(b)) = BlockSize(b)
+private definition EncAlgBlockSize(Stream_RC4_128) = 0
+*)
+
+function val AEADKeySize: aeadAlg -> nat
+assume !x. AEADKeySize(x) >= 0
+private definition AEADKeySize(AES_128_GCM) = 16
+private definition AEADKeySize(AES_256_GCM) = 32
+val aeadKeySize: a:aeadAlg -> n:nat{n=AEADKeySize(a)}
+
+function val AEADIVSize: aeadAlg -> nat
+assume !x. AEADIVSize(x) >= 0
+private definition AEADIVSize(AES_128_GCM) = 4
+private definition AEADIVSize(AES_256_GCM) = 4
+val aeadIVSize: a:aeadAlg -> n:nat{n=AEADIVSize(a)}
+
+function val AEADRecordIVSize: aeadAlg -> nat
+assume !x. AEADRecordIVSize(x) >= 0
+private definition AEADRecordIVSize(AES_128_GCM) = 8
+private definition AEADRecordIVSize(AES_256_GCM) = 8
+val aeadRecordIVSize: a:aeadAlg -> n:nat{n = AEADRecordIVSize(a)}
+
+function val AEADTagSize: aeadAlg -> nat
+assume !x. AEADTagSize(x) >= 0
+private definition AEADTagSize(AES_128_GCM) = 16
+private definition AEADTagSize(AES_256_GCM) = 16
+val aeadTagSize: a:aeadAlg -> n:nat{n = AEADTagSize(a)}
+
+// In TLS, hashes and MAC keys & tags have the same size, depending on hashAlg.
+function val HashSize: hashAlg -> nat
+private assume !x. HashSize(x) >= 0
+private definition HashSize(MD5    )     = 16
+private definition HashSize(SHA    )     = 20
+private definition HashSize(SHA256 )     = 32
+private definition HashSize(SHA384 )     = 48
+private definition HashSize(MD5SHA1)     = 36
+val hashSize:   a:hashAlg -> l:nat{l=HashSize(a)}
+
+function val MacKeySize: macAlg -> nat
+assume !x. MacKeySize(x) >= 0
+definition !a. MacKeySize(MA_HMAC(a))     = HashSize(a)
+definition !a. MacKeySize(MA_SSLKHASH(a)) = HashSize(a)
+val macKeySize: a:macAlg  -> l:nat{l=MacKeySize(a)}
+
+function val MacSize: macAlg -> nat
+assume !x. MacSize(x) >= 0
+// It seems to be a common practice to make the MAC tag the
+// same size as the MAC key, as both affect the security level.
+// We use the MacSize predicate for extra clarity.
+definition !x. MacSize(x) = MacKeySize(x)
+val macSize:    a:macAlg  -> l:nat{l=MacSize(a)}
+
+(* ------------------------------------------------------------------------ *)
+(* Key parameters *)
+
+type dsaparams = { p : bytes; q : bytes; g : bytes; }
+
+type skeyparams =
+| SK_RSA of bytes * bytes (* modulus x exponent *)
+| SK_DSA of bytes * dsaparams
+
+type pkeyparams =
+| PK_RSA of bytes * bytes
+| PK_DSA of bytes * dsaparams
+
+val sigalg_of_skeyparams: skeyparams -> sigAlg
+val sigalg_of_pkeyparams: pkeyparams -> sigAlg
+
+(*** Following RFC5246 A.5 *)
+
+private type SCSVsuite =
+    | TLS_EMPTY_RENEGOTIATION_INFO_SCSV
+
+type cipherAlg = // internal; used only in ciphersuite definition
+    | RC4_128
+    | TDES_EDE_CBC
+    | AES_128_CBC
+    | AES_256_CBC
+
+type csAuthEncAlg = // internal; used only in ciphersuite definition
+    | CS_MtE of cipherAlg * hashAlg
+    | CS_AEAD of aeadAlg * hashAlg
+
+type cipherSuite = // internal; kept abstract in the .fsi
+    | NullCipherSuite
+    | CipherSuite of kexAlg * csAuthEncAlg
+    | OnlyMACCipherSuite of kexAlg * hashAlg
+    | SCSV of SCSVsuite
+
+type cipherSuites = cipherSuite list
+
+(** Compression *)
+
+// By design, we entirely disable TLS-level compression
+// see e.g. traffic analyses & CRIME attacks
+
+type PreCompression =
+    | NullCompression
+
+predicate IsCompression of PreCompression
+definition !c. IsCompression(c) <=> (c = NullCompression)
+
+predicate IsCompressions of PreCompression list
+
+definition IsCompressions([])
+definition !c,cs. IsCompression(c) /\ IsCompressions(cs) => IsCompressions(c::cs)
+
+type Compression = c:PreCompression{IsCompression(c)}
+
+function val CompressionBytes: Compression -> cbytes
+definition CompressionBytes(NullCompression) = [| 0uy |]
+
+predicate ContainsCompressions of Compression list * Compression list
+function val CompressionsBytes: Compression list -> cbytes
+
+definition CompressionsBytes([]) = [||]
+definition !h,t. CompressionsBytes(h::t) = CompressionBytes(h) @| CompressionsBytes(t)
+
+(* unused for now:
+private assume !cl. ContainsCompressions(cl,cl) /\
+   (!cl. ContainsCompressions(cl,[])) /\
+   (!h,t,cl. ContainsCompressions(t,cl) => ContainsCompressions(h::t,cl)) /\
+   (!h,t,h',t'. ContainsCompressions(t,t') => ContainsCompressions(h::t,h'::t'))
+*)
+
+val compressionBytes: c:Compression -> b:bytes{CompressionBytes(c) = B(b)}
+val compressionMethodsBytes: cl:Compression list -> b:bytes{B(b) = CompressionsBytes(cl)}
+val parseCompression: b:bytes -> (c:Compression{B(b)=CompressionBytes(c)}) Result
+val parseCompressions: b:bytes -> cl:Compression list
+// our server currently ignores any compression-methods proposal
+
+(** Versions *)
+
+function val VersionBytes: ProtocolVersion -> b:cbytes
+assume !p. BLength(VersionBytes(p)) = 2
+private assume VersionBytes(SSL_3p0) = [| 3uy; 0uy |]
+private assume VersionBytes(TLS_1p0) = [| 3uy; 1uy |]
+private assume VersionBytes(TLS_1p1) = [| 3uy; 2uy |]
+private assume VersionBytes(TLS_1p2) = [| 3uy; 3uy |]
+
+ask !v,v'. IsProtocolVersion(v) /\ IsProtocolVersion(v') =>
+  VersionBytes(v) = VersionBytes(v') => v = v'
+
+ask !v. IsProtocolVersion(v) => BLength(VersionBytes(v)) = 2
+
+val versionBytes: pv:ProtocolVersion -> b:bytes{ Length(b) = 2 /\ B(b) = VersionBytes(pv) }
+val parseVersion: b:bytes{Length(b) = 2} -> (pv:ProtocolVersion{ B(b)= VersionBytes(pv)}) Result
+val minPV: a:ProtocolVersion -> b:ProtocolVersion -> c:ProtocolVersion
+val geqPV: a:ProtocolVersion -> b:ProtocolVersion -> r:bool
+val somePV: a: ProtocolVersion -> b:ProtocolVersion option {b = Some(a)}
+
+predicate val IsNullCiphersuite: cipherSuite -> bool
+private definition !x. IsNullCiphersuite(x) <=> x = NullCipherSuite
+val nullCipherSuite: c:cipherSuite{IsNullCiphersuite(c)}
+val isNullCipherSuite: c:cipherSuite -> r:bool{r=true <=> IsNullCiphersuite(c)}
+
+predicate val IsSCSVCiphersuite: cipherSuite -> bool
+private definition !x. IsSCSVCiphersuite(x) <=> ?z. x = SCSV(z)
+
+val isAnonCipherSuite: cipherSuite -> bool
+val isDHCipherSuite: cipherSuite -> bool
+val isDHECipherSuite: cipherSuite -> bool
+val isECDHECipherSuite: cipherSuite -> bool
+val isRSACipherSuite: cipherSuite -> bool
+val isOnlyMACCipherSuite: cipherSuite -> bool
+val contains_TLS_EMPTY_RENEGOTIATION_INFO_SCSV: cipherSuites -> bool
+
+val verifyDataLen_of_ciphersuite: cipherSuite -> nat
+
+function val CiphersuitePrfMacAlg: cipherSuite -> macAlg
+private definition
+    (!a,b,c.       CiphersuitePrfMacAlg( CipherSuite ( a , CS_MtE ( b , c )) )      = MA_HMAC(SHA256) ) /\
+    (!a,b, hAlg.   CiphersuitePrfMacAlg( CipherSuite ( a , CS_AEAD ( b , hAlg )) )  = MA_HMAC(hAlg)   ) /\
+    (!a,   hAlg.   CiphersuitePrfMacAlg( OnlyMACCipherSuite (a, hAlg) )             = MA_HMAC(SHA256) )
+
+val prfMacAlg_of_ciphersuite: cs:cipherSuite  -> ma:macAlg { ma=CiphersuitePrfMacAlg(cs) }
+val verifyDataHashAlg_of_ciphersuite: cs:cipherSuite -> hashAlg
+val sessionHashAlg: ProtocolVersion -> cipherSuite -> hashAlg
+
+// we rely on these labels being pairwise distinct to justify domain separation
+// (but the corresponding refinements are ignored by F7)
+type prflabel = b:bytes { b=Utf8("master secret") \/ b=Utf8("extended master secret") \/ b=Utf8("key expansion") }
+val extract_label: l:prflabel {l=Utf8("master secret")}
+val extended_extract_label: l:prflabel {l=Utf8("extended master secret")}
+val kdf_label: l:prflabel {l=Utf8("key expansion")}
+
+// We need descriptors for the algorithm keyed by PMS and MS (named "PRF" in TLS)
+// Given pv and cs, and except for SSL3,
+// the same algorithm is used for extraction, key derivation, and verifyData
+//
+// Specified here rather than in TLSPRF as these algorithm names are used in indexes
+
+type prePrfAlg =
+  | PRF_SSL3_nested                  // MD5(SHA1(...)) for extraction and keygen
+  | PRF_SSL3_concat                  // MD5 @| SHA1    for VerifyData tags
+  | PRF_TLS_1p01 of prflabel         // MD5 xor SHA1
+  | PRF_TLS_1p2 of prflabel * macAlg // typically SHA256 but may depend on CS
+
+type kefAlg = pa:prePrfAlg
+{
+  pa=PRF_SSL3_nested \/
+  pa=PRF_TLS_1p01(extract_label) \/
+  pa=PRF_TLS_1p01(extended_extract_label) \/
+  (?ma. pa=PRF_TLS_1p2(extract_label,ma)) \/
+  (?ma. pa=PRF_TLS_1p2(extended_extract_label,ma)) }
+
+type kdfAlg = pa:prePrfAlg
+{
+  pa=PRF_SSL3_nested \/
+  pa=PRF_TLS_1p01(kdf_label) \/
+  (?ma. pa=PRF_TLS_1p2(kdf_label,ma))}
+
+type vdAlg = ProtocolVersion * cipherSuite
+
+function val TLSMACAlg: hashAlg   * ProtocolVersion -> macAlg
+function val TLSENCAlg: cipherAlg * ProtocolVersion -> encAlg
+
+private definition !mac. TLSMACAlg(mac,SSL_3p0) = MA_SSLKHASH(mac)
+private definition !mac. TLSMACAlg(mac,TLS_1p0) = MA_HMAC(mac)
+private definition !mac. TLSMACAlg(mac,TLS_1p1) = MA_HMAC(mac)
+private definition !mac. TLSMACAlg(mac,TLS_1p2) = MA_HMAC(mac)
+
+private definition !pv. TLSENCAlg(RC4_128,pv)      = Stream_RC4_128
+private definition TLSENCAlg(AES_128_CBC, SSL_3p0) = CBC_Stale(AES_128)
+private definition TLSENCAlg(AES_128_CBC, TLS_1p0) = CBC_Stale(AES_128)
+private definition TLSENCAlg(AES_128_CBC, TLS_1p1) = CBC_Fresh(AES_128)
+private definition TLSENCAlg(AES_128_CBC, TLS_1p2) = CBC_Fresh(AES_128)
+private definition TLSENCAlg(AES_256_CBC, SSL_3p0) = CBC_Stale(AES_256)
+private definition TLSENCAlg(AES_256_CBC, TLS_1p0) = CBC_Stale(AES_256)
+private definition TLSENCAlg(AES_256_CBC, TLS_1p1) = CBC_Fresh(AES_256)
+private definition TLSENCAlg(AES_256_CBC, TLS_1p2) = CBC_Fresh(AES_256)
+private definition TLSENCAlg(TDES_EDE_CBC,SSL_3p0) = CBC_Stale(TDES_EDE)
+private definition TLSENCAlg(TDES_EDE_CBC,TLS_1p0) = CBC_Stale(TDES_EDE)
+private definition TLSENCAlg(TDES_EDE_CBC,TLS_1p1) = CBC_Fresh(TDES_EDE)
+private definition TLSENCAlg(TDES_EDE_CBC,TLS_1p2) = CBC_Fresh(TDES_EDE)
+
+function val CipherSuiteSigAlg: cipherSuite -> sigAlg
+private definition
+   (!a. CipherSuiteSigAlg(CipherSuite(DHE_DSS, a))    = SA_DSA) /\
+   (!a. CipherSuiteSigAlg(CipherSuite(DHE_RSA, a))    = SA_RSA) /\
+   (!a. CipherSuiteSigAlg(CipherSuite(DH_DSS, a))     = SA_DSA) /\
+   (!a. CipherSuiteSigAlg(CipherSuite(DH_RSA, a))     = SA_RSA) /\
+   (!a. CipherSuiteSigAlg(CipherSuite(RSA, a))        = SA_RSA) /\
+   (!a. CipherSuiteSigAlg(OnlyMACCipherSuite(RSA, a)) = SA_RSA)
+
+function val CipherSuiteSigHashAlg: cipherSuite -> sigHashAlg
+function val CipherSuiteMACAlg: cipherSuite * ProtocolVersion -> macAlg
+function val CipherSuiteENCAlg: cipherSuite * ProtocolVersion -> encAlg
+function val CipherSuiteAuthEncAlg: cipherSuite * ProtocolVersion -> aeAlg
+private definition !kex,mac,pv.
+    CipherSuiteAuthEncAlg(OnlyMACCipherSuite(kex,mac),pv) = MACOnly(TLSMACAlg(mac,pv))
+
+function val CipherSuiteKEXAlg: cipherSuite -> kexAlg
+private definition !kex,ae.
+    CipherSuiteKEXAlg(CipherSuite(kex,ae)) = kex
+
+private definition !kex,mac,pv.
+    CipherSuiteAuthEncAlg(OnlyMACCipherSuite(kex,mac),pv) = MACOnly(TLSMACAlg(mac,pv))
+private definition !kex,enc,mac,pv.
+    CipherSuiteAuthEncAlg(CipherSuite(kex,CS_MtE(enc,mac)),pv) = MtE(TLSENCAlg(enc,pv),TLSMACAlg(mac,pv))
+private definition !kex,ae,prf,pv.
+    CipherSuiteAuthEncAlg(CipherSuite(kex,CS_AEAD(ae,prf)),pv) = AEAD(ae,TLSMACAlg(prf,pv))
+
+function val AEMacAlg: aeAlg -> macAlg
+definition !mac.     AEMacAlg(MACOnly(mac)) = mac
+definition !mac,enc. AEMacAlg(MtE(enc,mac)) = mac
+
+function val AEEncAlg: aeAlg -> encAlg
+definition !enc,mac. AEEncAlg(MtE(enc,mac)) = enc
+
+definition !cs,pv. CipherSuiteMACAlg(cs,pv) = AEMacAlg(CipherSuiteAuthEncAlg(cs,pv))
+definition !cs,pv. CipherSuiteENCAlg(cs,pv) = AEEncAlg(CipherSuiteAuthEncAlg(cs,pv))
+
+ask !cs,pv,mac.     CipherSuiteAuthEncAlg(cs,pv) = MACOnly(mac) => CipherSuiteMACAlg(cs,pv) = mac
+ask !cs,pv,mac,enc. CipherSuiteAuthEncAlg(cs,pv) = MtE(enc,mac) => CipherSuiteMACAlg(cs,pv) = mac
+ask !cs,pv,mac,enc. CipherSuiteAuthEncAlg(cs,pv) = MtE(enc,mac) => CipherSuiteENCAlg(cs,pv) = enc
+
+private val tlsEncAlg: c:cipherAlg -> pv:ProtocolVersion -> e:encAlg{e = TLSENCAlg(c,pv)}
+private val tlsMacAlg: c:hashAlg -> pv:ProtocolVersion -> e:macAlg{e = TLSMACAlg(c,pv)}
+
+val mk_aeAlg: cs:cipherSuite -> pv:ProtocolVersion -> a:aeAlg{a = CipherSuiteAuthEncAlg(cs,pv)}
+val encAlg_of_aeAlg: a:aeAlg -> e:encAlg{e=AEEncAlg(a)}
+val macAlg_of_aeAlg: a:aeAlg -> m:macAlg{m=AEMacAlg(a)}
+val macAlg_of_ciphersuite: cs:cipherSuite -> pv:ProtocolVersion -> h:macAlg{h = CipherSuiteMACAlg(cs,pv)}
+val encAlg_of_ciphersuite: cs:cipherSuite -> pv:ProtocolVersion -> c:encAlg{c = CipherSuiteENCAlg(cs,pv)}
+val sigAlg_of_ciphersuite: cs:cipherSuite -> s:sigAlg{s = CipherSuiteSigAlg(cs)}
+
+function val CipherSuiteBytes: cipherSuite -> cbytes
+private assume
+       CipherSuiteBytes(NullCipherSuite)                                     = [| 0x00uy; 0x00uy |]
+    /\ CipherSuiteBytes(OnlyMACCipherSuite (RSA, MD5))                       = [| 0x00uy; 0x01uy |]
+    /\ CipherSuiteBytes(OnlyMACCipherSuite (RSA, SHA))                       = [| 0x00uy; 0x02uy |]
+    /\ CipherSuiteBytes(OnlyMACCipherSuite (RSA, SHA256))                    = [| 0x00uy; 0x3Buy |]
+    /\ CipherSuiteBytes(CipherSuite (RSA, CS_MtE (RC4_128, MD5)))            = [| 0x00uy; 0x04uy |]
+    /\ CipherSuiteBytes(CipherSuite (RSA, CS_MtE (RC4_128, SHA)))            = [| 0x00uy; 0x05uy |]
+    /\ CipherSuiteBytes(CipherSuite (RSA, CS_MtE (TDES_EDE_CBC, SHA)))       = [| 0x00uy; 0x0Auy |]
+    /\ CipherSuiteBytes(CipherSuite (RSA, CS_MtE (AES_128_CBC, SHA)))        = [| 0x00uy; 0x2Fuy |]
+    /\ CipherSuiteBytes(CipherSuite (RSA, CS_MtE (AES_256_CBC, SHA)))        = [| 0x00uy; 0x35uy |]
+    /\ CipherSuiteBytes(CipherSuite (RSA, CS_MtE (AES_128_CBC, SHA256)))     = [| 0x00uy; 0x3Cuy |]
+    /\ CipherSuiteBytes(CipherSuite (RSA, CS_MtE (AES_256_CBC, SHA256)))     = [| 0x00uy; 0x3Duy |]
+
+    /\ CipherSuiteBytes(CipherSuite (DH_DSS, CS_MtE (TDES_EDE_CBC, SHA)))    = [| 0x00uy; 0x0Duy |]
+    /\ CipherSuiteBytes(CipherSuite (DH_RSA, CS_MtE (TDES_EDE_CBC, SHA)))    = [| 0x00uy; 0x10uy |]
+    /\ CipherSuiteBytes(CipherSuite (DHE_DSS, CS_MtE (TDES_EDE_CBC, SHA)))   = [| 0x00uy; 0x13uy |]
+    /\ CipherSuiteBytes(CipherSuite (DHE_RSA, CS_MtE (TDES_EDE_CBC, SHA)))   = [| 0x00uy; 0x16uy |]
+
+    /\ CipherSuiteBytes(CipherSuite (DH_DSS, CS_MtE (AES_128_CBC, SHA)))     = [| 0x00uy; 0x30uy |]
+    /\ CipherSuiteBytes(CipherSuite (DH_RSA, CS_MtE (AES_128_CBC, SHA)))     = [| 0x00uy; 0x31uy |]
+    /\ CipherSuiteBytes(CipherSuite (DHE_DSS, CS_MtE (AES_128_CBC, SHA)))    = [| 0x00uy; 0x32uy |]
+    /\ CipherSuiteBytes(CipherSuite (DHE_RSA, CS_MtE (AES_128_CBC, SHA)))    = [| 0x00uy; 0x33uy |]
+
+    /\ CipherSuiteBytes(CipherSuite (DH_DSS, CS_MtE (AES_256_CBC, SHA)))     = [| 0x00uy; 0x36uy |]
+    /\ CipherSuiteBytes(CipherSuite (DH_RSA, CS_MtE (AES_256_CBC, SHA)))     = [| 0x00uy; 0x37uy |]
+    /\ CipherSuiteBytes(CipherSuite (DHE_DSS, CS_MtE (AES_256_CBC, SHA)))    = [| 0x00uy; 0x38uy |]
+    /\ CipherSuiteBytes(CipherSuite (DHE_RSA, CS_MtE (AES_256_CBC, SHA)))    = [| 0x00uy; 0x39uy |]
+
+    /\ CipherSuiteBytes(CipherSuite (DH_DSS, CS_MtE (AES_128_CBC, SHA256)))  = [| 0x00uy; 0x3Euy |]
+    /\ CipherSuiteBytes(CipherSuite (DH_RSA, CS_MtE (AES_128_CBC, SHA256)))  = [| 0x00uy; 0x3Fuy |]
+    /\ CipherSuiteBytes(CipherSuite (DHE_DSS, CS_MtE (AES_128_CBC, SHA256))) = [| 0x00uy; 0x40uy |]
+    /\ CipherSuiteBytes(CipherSuite (DHE_RSA, CS_MtE (AES_128_CBC, SHA256))) = [| 0x00uy; 0x67uy |]
+
+    /\ CipherSuiteBytes(CipherSuite (DH_DSS, CS_MtE (AES_256_CBC, SHA256)))  = [| 0x00uy; 0x68uy |]
+    /\ CipherSuiteBytes(CipherSuite (DH_RSA, CS_MtE (AES_256_CBC, SHA256)))  = [| 0x00uy; 0x69uy |]
+    /\ CipherSuiteBytes(CipherSuite (DHE_DSS, CS_MtE (AES_256_CBC, SHA256))) = [| 0x00uy; 0x6Auy |]
+    /\ CipherSuiteBytes(CipherSuite (DHE_RSA, CS_MtE (AES_256_CBC, SHA256))) = [| 0x00uy; 0x6Buy |]
+
+    /\ CipherSuiteBytes(CipherSuite (DH_anon, CS_MtE (RC4_128, MD5)))        = [| 0x00uy; 0x18uy |]
+    /\ CipherSuiteBytes(CipherSuite (DH_anon, CS_MtE (TDES_EDE_CBC, SHA)))   = [| 0x00uy; 0x1Buy |]
+    /\ CipherSuiteBytes(CipherSuite (DH_anon, CS_MtE (AES_128_CBC, SHA)))    = [| 0x00uy; 0x34uy |]
+    /\ CipherSuiteBytes(CipherSuite (DH_anon, CS_MtE (AES_256_CBC, SHA)))    = [| 0x00uy; 0x3Auy |]
+    /\ CipherSuiteBytes(CipherSuite (DH_anon, CS_MtE (AES_128_CBC, SHA256))) = [| 0x00uy; 0x6Cuy |]
+    /\ CipherSuiteBytes(CipherSuite (DH_anon, CS_MtE (AES_256_CBC, SHA256))) = [| 0x00uy; 0x6Duy |]
+
+    /\ CipherSuiteBytes(CipherSuite (RSA,     CS_AEAD(AES_128_GCM, SHA256))) = [| 0x00uy; 0x9Cuy |]
+    /\ CipherSuiteBytes(CipherSuite (RSA,     CS_AEAD(AES_256_GCM, SHA384))) = [| 0x00uy; 0x9Duy |]
+    /\ CipherSuiteBytes(CipherSuite (DHE_RSA, CS_AEAD(AES_128_GCM, SHA256))) = [| 0x00uy; 0x9Euy |]
+    /\ CipherSuiteBytes(CipherSuite (DHE_RSA, CS_AEAD(AES_256_GCM, SHA384))) = [| 0x00uy; 0x9Fuy |]
+    /\ CipherSuiteBytes(CipherSuite (DH_RSA,  CS_AEAD(AES_128_GCM, SHA256))) = [| 0x00uy; 0xA0uy |]
+    /\ CipherSuiteBytes(CipherSuite (DH_RSA,  CS_AEAD(AES_256_GCM, SHA384))) = [| 0x00uy; 0xA1uy |]
+    /\ CipherSuiteBytes(CipherSuite (DHE_DSS, CS_AEAD(AES_128_GCM, SHA256))) = [| 0x00uy; 0xA2uy |]
+    /\ CipherSuiteBytes(CipherSuite (DHE_DSS, CS_AEAD(AES_256_GCM, SHA384))) = [| 0x00uy; 0xA3uy |]
+    /\ CipherSuiteBytes(CipherSuite (DH_DSS,  CS_AEAD(AES_128_GCM, SHA256))) = [| 0x00uy; 0xA4uy |]
+    /\ CipherSuiteBytes(CipherSuite (DH_DSS,  CS_AEAD(AES_256_GCM, SHA384))) = [| 0x00uy; 0xA5uy |]
+    /\ CipherSuiteBytes(CipherSuite (DH_anon, CS_AEAD(AES_128_GCM, SHA256))) = [| 0x00uy; 0xA6uy |]
+    /\ CipherSuiteBytes(CipherSuite (DH_anon, CS_AEAD(AES_256_GCM, SHA384))) = [| 0x00uy; 0xA7uy |]
+
+    /\ CipherSuiteBytes(SCSV (TLS_EMPTY_RENEGOTIATION_INFO_SCSV))            = [| 0x00uy; 0xFFuy |]
+
+function val CipherSuitesBytes: cipherSuites -> cbytes
+private definition
+   (CipherSuitesBytes([]) = [||]) /\
+   (!h,t. CipherSuitesBytes(h::t) = CipherSuiteBytes(h) @| CipherSuitesBytes(t))
+
+private val consCipherSuites: cs:cipherSuite -> css:cipherSuites -> css':cipherSuites{css' = cs::css}
+
+val cipherSuiteBytes: c:cipherSuite -> b:bytes{Length(b)=2 /\ B(b) = CipherSuiteBytes(c)}
+val parseCipherSuite: b:bytes{Length(b)=2} -> (c:cipherSuite{B(b) = CipherSuiteBytes(c)}) Result
+
+// this parsing function may fail if b has the wrong length,
+// or if we were strict on unknown ciphersuites
+val parseCipherSuites: b:bytes -> (css:cipherSuites) Result
+// Similarly to compression methods we do not guarantee anything about the parsing of ciphersuites at the server
+// As invalid bytes are ignored B(b) = CipherSuitesBytes(css) may not hold.
+
+val cipherSuitesBytes: css:cipherSuites -> b:bytes {B(b) = CipherSuitesBytes(css)}
+
+val mkIntTriple: (nat * nat * nat) -> (nat * nat * nat)
+
+(* This type is not used for verification, just to run the
+   implementation and let the client refer to concrete ciphersuites *)
+
+type cipherSuiteName =
+    | TLS_NULL_WITH_NULL_NULL
+
+    | TLS_RSA_WITH_NULL_MD5
+    | TLS_RSA_WITH_NULL_SHA
+    | TLS_RSA_WITH_NULL_SHA256
+    | TLS_RSA_WITH_RC4_128_MD5
+    | TLS_RSA_WITH_RC4_128_SHA
+    | TLS_RSA_WITH_3DES_EDE_CBC_SHA
+    | TLS_RSA_WITH_AES_128_CBC_SHA
+    | TLS_RSA_WITH_AES_256_CBC_SHA
+    | TLS_RSA_WITH_AES_128_CBC_SHA256
+    | TLS_RSA_WITH_AES_256_CBC_SHA256
+
+    | TLS_DHE_DSS_WITH_3DES_EDE_CBC_SHA
+    | TLS_DHE_RSA_WITH_3DES_EDE_CBC_SHA
+    | TLS_DHE_DSS_WITH_AES_128_CBC_SHA
+    | TLS_DHE_RSA_WITH_AES_128_CBC_SHA
+    | TLS_DHE_DSS_WITH_AES_256_CBC_SHA
+    | TLS_DHE_RSA_WITH_AES_256_CBC_SHA
+    | TLS_DHE_DSS_WITH_AES_128_CBC_SHA256
+    | TLS_DHE_RSA_WITH_AES_128_CBC_SHA256
+    | TLS_DHE_DSS_WITH_AES_256_CBC_SHA256
+    | TLS_DHE_RSA_WITH_AES_256_CBC_SHA256
+
+    | TLS_ECDHE_RSA_WITH_RC4_128_SHA
+    | TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA
+    | TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA
+    | TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256
+    | TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA
+    | TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384
+
+    | TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+    | TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+
+    | TLS_DH_anon_WITH_RC4_128_MD5
+    | TLS_DH_anon_WITH_3DES_EDE_CBC_SHA
+    | TLS_DH_anon_WITH_AES_128_CBC_SHA
+    | TLS_DH_anon_WITH_AES_256_CBC_SHA
+    | TLS_DH_anon_WITH_AES_128_CBC_SHA256
+    | TLS_DH_anon_WITH_AES_256_CBC_SHA256
+
+    | TLS_RSA_WITH_AES_128_GCM_SHA256
+    | TLS_RSA_WITH_AES_256_GCM_SHA384
+    | TLS_DHE_RSA_WITH_AES_128_GCM_SHA256
+    | TLS_DHE_RSA_WITH_AES_256_GCM_SHA384
+    | TLS_DH_RSA_WITH_AES_128_GCM_SHA256
+    | TLS_DH_RSA_WITH_AES_256_GCM_SHA384
+    | TLS_DHE_DSS_WITH_AES_128_GCM_SHA256
+    | TLS_DHE_DSS_WITH_AES_256_GCM_SHA384
+    | TLS_DH_DSS_WITH_AES_128_GCM_SHA256
+    | TLS_DH_DSS_WITH_AES_256_GCM_SHA384
+    | TLS_DH_anon_WITH_AES_128_GCM_SHA256
+    | TLS_DH_anon_WITH_AES_256_GCM_SHA384
+
+val cipherSuite_of_name: cipherSuiteName -> cipherSuite
+val cipherSuites_of_nameList: cipherSuiteName list -> cipherSuites
+val name_of_cipherSuite: cipherSuite -> cipherSuiteName Result
+val names_of_cipherSuites: cipherSuites -> (cipherSuiteName list) Result
+
+type preContentType =
+  | Change_cipher_spec
+  | Alert
+  | Handshake
+  | Application_data
+
+type ContentType = ct:preContentType
+  {ct = Change_cipher_spec \/ ct = Alert \/
+   ct = Handshake \/ ct = Application_data}
+
+// to be relocated to some other library
+val bytes_of_seq: sn:nat -> b:bytes{Length(b) = 8 /\ b = IntBytes(8,sn)}
+val seq_of_bytes: b:bytes{Length(b)=8} -> sn:nat{b = IntBytes(8,sn)}
+
+function val CTBytes: ContentType -> cbytes
+assume !c. BLength(CTBytes(c)) = 1
+private definition CTBytes(Change_cipher_spec) = [|20uy|]
+private definition CTBytes(Alert)              = [|21uy|]
+private definition CTBytes(Handshake)          = [|22uy|]
+private definition CTBytes(Application_data)   = [|23uy|]
+
+val ctBytes: ct:ContentType -> b:bytes{B(b)=CTBytes(ct)}
+val parseCT: b:bytes {Length(b)=1} -> (ct:ContentType{B(b)=CTBytes(ct)}) Result
+val ctToString: ContentType -> string
+
+// binary format for length-prefixed bytes;
+// the integer is the length of the prefix (1, 2, 3 or 4 for TLS)
+
+function val VLBytes: (nat * cbytes) -> cbytes
+definition !i,b. VLBytes(i,b) = B(IntBytes(i,BLength(b))) @| b
+
+ask !i,b,b'. VLBytes(i,b) = VLBytes(i,b') => b = b'
+
+val vlbytes: l:nat -> b:bytes -> r:bytes {B(r)=VLBytes(l,B(b))}
+val vlsplit:
+  l:nat{l<=8} -> b:bytes{Length(b)>=l} ->
+  ( b1:bytes * b2:bytes {B(b) = VLBytes(l,B(b1)) @| B(b2)}) Result
+
+val vlparse:
+  l:nat{l<=8} -> b:bytes{Length(b)>=l} ->
+  ( r:bytes { B(b) = VLBytes(l,B(r)) }) Result
+
+// nice to have, not used so far. F7 needs a little help.
+//
+// ask !i,b. BLength(VLBytes(i,b)) = BLength(B(IntBytes(i,BLength(b))) @| b)
+// ask !i,b. BLength(B(IntBytes(i,BLength(b))) @| b) = BLength(B(IntBytes(i,BLength(b)))) + BLength(b)
+// ask !i,b. BLength(B(IntBytes(i,BLength(b)))) + BLength(b) = Length(IntBytes(i,BLength(b))) + BLength(b)
+// ask !i,b. Length(IntBytes(i,BLength(b))) + BLength(b) = i + BLength(b)
+
+ask !i,b. BLength(B(IntBytes(i,BLength(b))) @| b) = i + BLength(b)
+ask !i,b. BLength(VLBytes(i,b)) = i + BLength(b)
+
+// relies on associativity
+theorem !i,b1,b2,c1,c2.
+  i >= 0 =>
+  (VLBytes(i,b1) @| b2 = VLBytes(i,c1) @| c2) => (b1 = c1 /\ b2 = c2)
+
+// cert-type parsing / formatting
+type certType =
+    | RSA_sign
+    | DSA_sign
+    | RSA_fixed_dh
+    | DSA_fixed_dh
+
+function val CertTypeBytes: certType -> cbytes
+private definition CertTypeBytes(RSA_sign)     = [|1uy|]
+private definition CertTypeBytes(DSA_sign)     = [|2uy|]
+private definition CertTypeBytes(RSA_fixed_dh) = [|3uy|]
+private definition CertTypeBytes(DSA_fixed_dh) = [|4uy|]
+
+val certTypeBytes: ct:certType -> b:bytes {B(b)=CertTypeBytes(ct)}
+val parseCertType: b:bytes -> (ct:certType {B(b)=CertTypeBytes(ct)}) Result
+
+function val CertTypesBytes: certType list -> cbytes
+private definition !h,t.
+    CertTypesBytes([])   = [||] /\
+    CertTypesBytes(h::t) = CertTypeBytes(h) @| CertTypesBytes(t)
+
+val certificateTypeListBytes: ctl:certType list ->
+           b:bytes{B(b)=CertTypesBytes(ctl)}
+val parseCertificateTypeList: b:bytes ->
+	ctl:certType list{
+
+         }
+
+function val DefaultCertTypes: bool * cipherSuite -> certType list
+private definition
+    (!cs. CipherSuiteSigAlg(cs) = SA_DSA => DefaultCertTypes(false,cs) = [DSA_fixed_dh]) /\
+    (!cs. CipherSuiteSigAlg(cs) = SA_DSA => DefaultCertTypes(true ,cs) = [DSA_sign])     /\
+    (!cs. CipherSuiteSigAlg(cs) = SA_RSA => DefaultCertTypes(false,cs) = [RSA_fixed_dh]) /\
+    (!cs. CipherSuiteSigAlg(cs) = SA_RSA => DefaultCertTypes(true ,cs) = [RSA_sign])
+val defaultCertTypes: sign:bool -> cs:cipherSuite -> ctl:certType list{ctl=DefaultCertTypes(sign,cs)}
+
+function val DistinguishedNameListBytes: string list -> cbytes
+definition DistinguishedNameListBytes([]) = [||]
+definition !h,t. DistinguishedNameListBytes(h::t) = VLBytes(2,B(Utf8(h))) @| DistinguishedNameListBytes(t)
+
+function val DistinguishedNamesBytes: string list -> cbytes
+private definition !l. DistinguishedNamesBytes(l) = VLBytes(2,DistinguishedNameListBytes(l))
+
+val distinguishedNameListBytes: n:string list -> b:bytes{B(b)=DistinguishedNameListBytes(n)}
+val parseDistinguishedNameList: b:bytes -> s:string list ->
+	(res:string list{
+
+	}) Result

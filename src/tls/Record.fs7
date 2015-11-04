@@ -1,0 +1,77 @@
+(*
+ * Copyright 2015 INRIA and Microsoft Corporation
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *)
+
+module Record
+
+(* Implementing the Record layer from StatefulLHAE + basic packet handling *)
+
+open Bytes
+open Error
+open TLSError
+open TLSConstants
+open TLSInfo
+open Range
+
+(** Outer packet format *)
+
+private val makePacket: ContentType -> ProtocolVersion -> bytes -> bytes
+
+val parseHeader: b:(;5)lbytes ->
+	((ContentType * ProtocolVersion * n:nat){n>0 /\ n <= max_TLSCipher_fragment_length}) Result
+
+(** Connections (multiplexing 4 TLS protocols) *)
+
+(* Record states are history-dependent StAE states *)
+
+private type (;e:epoch,rw:rw) ConnectionState =
+	| NullState
+	| SomeState of h :(;e)TLSFragment.history * st:(;Id(e),rw)StatefulLHAE.state
+	              {h = StatefulPlain.Multiplexed(e,StatefulLHAE.History(Id(e),rw,st))}
+val someState:
+  e:epoch -> rw:rw -> h:(;e) TLSFragment.history ->
+  st: (;Id(e),rw) StatefulLHAE.state { h = StatefulPlain.Multiplexed(e,StatefulLHAE.History(Id(e),rw,st))} ->
+  cs:(;e,rw) ConnectionState{cs = SomeState (h,st)}
+
+function val History: e:epoch * rw:rw * (;e,rw) ConnectionState -> 'a
+private definition !e,rw,h,s. History(e,rw,SomeState(h,s)) = h
+private definition !e,rw,s.   History(e,rw,NullState) = TLSFragment.EmptyHistory(e)
+
+val history: e:epoch -> rw:rw -> s:(;e,rw) ConnectionState -> h:(;e) TLSFragment.history{h=History(e,rw,s)}
+
+val initConnState: e:succEpoch -> rw:rw ->
+  state:(;Id(e),rw) StatefulLHAE.state{StatefulLHAE.History(Id(e),rw,state) = StatefulPlain.EmptyHistory(Id(e))} ->
+  cs:(;e,rw) ConnectionState{History(e,rw,cs) = TLSFragment.EmptyHistory(e)}
+
+val nullConnState: e:epoch -> rw:rw ->
+  cs:(;e,rw) ConnectionState{History(e,rw,cs) = TLSFragment.EmptyHistory(e)}
+
+type (;e:epoch) sendState = (;e,Writer) ConnectionState
+type (;e:epoch) recvState = (;e,Reader) ConnectionState
+
+val recordPacketOut:
+  e:epoch -> s:(;e) sendState -> pv:ProtocolVersion ->
+  rg:range ->
+  ct:ContentType{ct=Application_data => OpenState(e)} ->
+  f:(;e,ct,History(e,Writer,s),rg) TLSFragment.plain ->
+  (s':(;e) sendState * wire:bytes)
+  { Auth(e) => (History(e,Writer,s') = TLSFragment.ExtendHistory(e,ct,History(e,Writer,s),rg,f))}
+
+val recordPacketIn :
+  e:epoch -> s:(;e) recvState ->
+  ct:ContentType{ct=Application_data => OpenState(e)} ->
+  wire:bytes{Length(wire) <= max_TLSCipher_fragment_length} ->
+  ( (s':(;e)recvState * rg:range * f:(;e,ct,History(e,Reader,s),rg) TLSFragment.plain)
+    { Auth(e) => History(e,Reader,s') = TLSFragment.ExtendHistory(e,ct,History(e,Reader,s),rg,f) }			  ) Result

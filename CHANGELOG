@@ -1,0 +1,51 @@
+miTLS 0.9.0 2015-04-21
+  * FlexTLS
+    * Add "FlexTLS" library for assembling TLS messages
+    * Add "FlexAppls" command line tool for testing TLS scenarios
+    * Add deviant scenario generator (aka SmackTLS)
+  * TLS library
+    * Add compilation flag for experimenting with TLS 1.3
+  * Project management
+    * Get BouncyCastle and SQLite as nuget packages
+	
+miTLS 0.8.1 2014-10-03
+  * TLS library
+    * Use compilation flags to disable experimental extensions
+  * Command line tools
+    * Improve help and information messages
+	* Fix target architecture
+	* Remove unused options
+
+miTLS 0.8.0 2014-10-01
+  * TLS library
+    * Refactor some code to ease F* migration
+    * Rework DH group and element checking
+	  Efficient cache-based checks on groups
+	  Add checks for prime and group size
+    * Enable experimental implementation of extended master secret extension
+  * Project management
+    * Move to VS2013
+
+miTLS 0.7.0 2014-08-20
+  * TLS library
+    * Refactor handshake-related modules
+    * Add support for session-hash and extended master secret computation
+
+miTLS 0.1.3 2013-11-21
+  * TLS library
+    * Added support for AEAD_GCM
+    * More modular extension handling mechanism
+
+miTLS 0.1.2 2013-03-19
+  * TLS library
+    * Optimize memory usage
+      The stream of exchanged data is truly ghost, only stored in ideal functionality
+    * Improve cryptographic provider handling
+      Add runtime support for different providers
+      Add .NET and SSLeay as providers
+  * HTTP server
+    * Improve support for WSGI interface
+    * Fix bugs
+
+miTLS 0.1.1 2013-02-11
+  * Initial public release

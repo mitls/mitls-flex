@@ -1,0 +1,50 @@
+(*
+ * Copyright 2015 INRIA and Microsoft Corporation
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *)
+
+module MAC_SHA1
+
+(* Core HMAC algorithms, idealized for INT-CMA:
+   compared with MAC.fs7, we are still abstractly indexed (for multi-instance)
+   but the algorithm is fixed, the keys are abstract, and security is unconditional *)
+
+open Bytes
+open TLSConstants
+open TLSInfo
+
+val a: a:macAlg{ a = MA_HMAC(SHA) } // symbolic constant
+
+type (;ki:id) keyrepr = k:bytes {Length(k) = MacKeySize(a)}
+private type (;ki:id) key = {k:(;ki) keyrepr}
+
+type text = bytes
+predicate val Msg: id * text -> bool
+
+type tag = m:bytes {Length(m) = MacSize(a)}
+
+val GEN:
+  ki:id -> (;ki) key
+val Mac:
+  ki:id -> (;ki) key ->
+  t:text {Msg(ki,t)} -> tag
+val Verify:
+  ki:id -> (;ki) key -> t:text ->
+  tag -> b:bool { b=true => Msg(ki,t) }
+
+(* typing the log for the ideal functionality *)
+
+type entry = (ki:id * t:text * tag){Msg(ki,t)}
+private val log: entry list ref
+private val tmem: ki:id -> t:text -> entry list -> b:bool{ b=true => Msg(ki,t) }

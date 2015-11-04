@@ -1,0 +1,60 @@
+(*
+ * Copyright 2015 INRIA and Microsoft Corporation
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *)
+
+module RSAKey
+
+// This module defines RSA keys
+// but not their use for public-key encryption: see RSA
+// (We use two modules to break a circular dependency)
+
+open Bytes
+
+private type sk = { sk : CoreACiphers.sk } (* secret (decryption) key, abstract for honest keys *)
+type pk = { pk : CoreACiphers.pk } (* public (encryption) key, bytes are accessible *)
+
+type modulus  = bytes
+type exponent = bytes
+
+// marks honestly generated keys (dynamically assumed by gen).
+predicate Honest of pk
+val honest: pk:pk -> b:bool {b=true <=> Honest(pk)}
+
+predicate Strong of TLSConstants.ProtocolVersion
+val strong: pv:TLSConstants.ProtocolVersion  -> b:bool {b=true <=> Strong(pv)}
+
+// marks relationship between secret and public keys
+// (dynamically assumed by gen & coerce to partially define the logical PK)
+predicate type pred = SK_PK of sk * pk
+function val PK: sk -> pk
+private definition !sk,pk. pk=PK(sk) <=> SK_PK(sk,pk)
+
+val gen: unit -> p:pk * s:sk{p = PK(s)}
+val coerce: p:pk {not Honest(p)} -> CoreACiphers.sk -> s:sk{p = PK(s)}
+
+// in a model with adversarially provided keys and static corruption, leak is not essential
+//val leak:   s:sk {not Honest(PK(s))} -> CoreACiphers.sk
+
+// shouldn't be needed as representation of pk need not be private
+val repr_of_rsapkey : pk -> CoreACiphers.pk
+
+// morally private, used only in RSA.fs
+val repr_of_rsaskey : sk -> CoreACiphers.sk
+
+// shouldn't be needed as representation of pk need not be private
+val create_rsapkey : modulus * exponent -> pk
+
+// replaced by coerce
+// val create_rsaskey : modulus * exponent -> sk

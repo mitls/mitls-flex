@@ -1,0 +1,72 @@
+(*
+ * Copyright 2015 INRIA and Microsoft Corporation
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *)
+
+module UntrustedCert
+
+open Bytes
+open Error
+open TLSError
+open TLSConstants
+
+val OID_RSAEncryption : string
+val OID_SHAWithRSAEncryption : string
+val OID_SHA256WithRSAEncryption : string
+val OID_DSASignatureKey : string
+
+val oid_of_keyalg: sigAlg -> string
+
+type X509Certificate2 = System.Security.Cryptography.X509Certificates.X509Certificate2
+type hint = string
+type cert = bytes
+type chain = cert list
+
+val x509_is_for_signing: X509Certificate2 -> bool
+
+val x509_verify: X509Certificate2 -> bool
+val x509_chain: X509Certificate2 -> X509Certificate2 list
+
+val x509_check_key_sig_alg_one: Sig.alg list -> X509Certificate2 -> bool
+
+val x509_to_secret_key: X509Certificate2 -> CoreSig.sigskey option
+val x509_to_public_key: X509Certificate2 -> CoreSig.sigpkey option
+
+val x509_is_for_key_encryption: X509Certificate2 -> bool
+
+val x509_export_public: X509Certificate2 -> bytes
+
+val cert_to_x509: cert -> X509Certificate2 option
+
+val chain_to_x509list: chain -> X509Certificate2 list option
+
+val x509list_to_chain: X509Certificate2 list -> chain
+
+(* First argument (Sig.alg list) gives the allowed signing alg. used for
+ * signing the keys of the chain.
+ *)
+
+val validate_x509_chain: Sig.alg list -> chain -> bool
+
+val validate_x509list: X509Certificate2 -> X509Certificate2 list -> bool
+
+val is_for_signing:        cert -> bool
+val is_for_key_encryption: cert -> bool
+
+val find_sigcert_and_alg: Sig.alg list -> hint -> Sig.alg list -> (X509Certificate2 * Sig.alg) option
+val find_enccert: Sig.alg list -> hint -> X509Certificate2 option
+
+val get_chain_key_algorithm: chain -> sigAlg option
+
+val get_name_info: X509Certificate2 -> string

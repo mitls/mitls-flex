@@ -1,0 +1,61 @@
+(*
+ * Copyright 2015 INRIA and Microsoft Corporation
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *)
+
+module RPC
+
+open Bytes
+
+// Fixed-lengths requests and responses
+
+type principal = string
+type (;a:principal, b:principal) request
+// { Request(a,b,r) \/ Corrupt(a) \/ Corrupt(b) }
+
+type (;a:principal, b:principal, r:request) response
+// { (Request(a,b,r) /\ Response(a,b,r,s)) \/ Corrupt(a) \/ Corrupt(b) }
+
+val request: a:principal -> b:principal -> m:bytes -> r:(;a,b) request
+val response: a:principal -> b:principal -> r:(;a,b) request -> s:(;a,b,r) response
+
+val request_bytes:
+  a:principal -> b:principal {Corrupt(a) \/ Corrupt(b)} ->
+  r:(;a,b) request -> m:bytes
+
+val response_bytes:
+  a:principal -> b:principal {Corrupt(a) \/ Corrupt(b)} ->
+  r:(;a,b) request -> s:(;a,b,r) response -> m:bytes
+
+val service:
+  a:principal -> b:principal -> (bytes -> bytes (*pure*) ) ->
+  r:(;a,b) request -> s:(;a,b,r) response
+
+type (;i:index) plain
+
+val request_msg: i:index {Client(i)} -> (;Client(i),Server(i)) request -> (;i) plain
+val msg_request: i:index {Client(i)} -> (;i) plain -> (;Client(i),Server(i)) request
+
+// in RPC, we abstract Connections to
+// a fresh abstract ID, a pair (a,b) of optional principals, and a polarity (C or S)
+
+// Confidentiality : TLS does not access the plain bytes,
+// Authenticity    : TLS does not forge appdata,
+//
+// Assuming mutual authentication, the precondition for coercing bytes <=> (;i) plain is:
+//   WeakCrypto(CipherSuite(i)) \/  Corrupt(ClientID(i)) \/ Corrupt(ServerID(i))
+
+// If we treat naive principals as corrupt, we may
+//   assume !i. WeakCrypto(i) => Corrupt(ClientID(i)) \/ Corrupt(ServerID(i))
+// and then the precondition above just reflects application-level corrupted principals.

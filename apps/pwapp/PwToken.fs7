@@ -1,0 +1,97 @@
+(*
+ * Copyright 2015 INRIA and Microsoft Corporation
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *)
+
+module PwToken
+
+// ------------------------------------------------------------------------
+open Bytes
+open TLSInfo
+open DataStream
+open Range
+
+// ------------------------------------------------------------------------
+type username = string
+
+type token =
+  | GToken of bytes
+  | BToken of bytes
+
+private type utk = UTK of username * token
+
+predicate GoodClient      of unit
+predicate GoodToken       of token
+predicate RegisteredToken of utk
+
+assume !bs.     GoodToken(GToken(bs))
+assume !bs. not GoodToken(BToken(bs))
+
+private val tokens : (utk:utk{RegisteredToken(utk)}) list ref
+
+function val TokenBytes : token -> bytes
+
+definition !bs. TokenBytes(GToken(bs)) = bs
+definition !bs. TokenBytes(BToken(bs)) = bs
+
+// ------------------------------------------------------------------------
+private val verify_r :
+     utk:utk
+  -> tokens:(utk:utk{RegisteredToken(utk)}) list
+  -> b:bool{b = true => RegisteredToken(utk)}
+
+// ------------------------------------------------------------------------
+val create   : unit{GoodClient()} -> tk:token{GoodToken(tk)}
+val register : u:username -> tk:token{GoodToken(tk)} -> unit{RegisteredToken(UTK(u, tk))}
+val verify   : u:username -> tk:token -> b:bool{b = true => RegisteredToken(UTK(u, tk))}
+val guess    : bytes -> tk:token{not GoodToken(tk)}
+
+// ------------------------------------------------------------------------
+private val tk_good  : tk:token -> b:bool{b = true => GoodToken(tk)}
+private val tk_bytes : tk:token -> bs:bytes{bs = TokenBytes(tk)}
+
+// ------------------------------------------------------------------------
+type (;ki : epoch, s : (;ki)stream, r : range) delta = (;ki, s, r) DataStream.delta
+
+private val MaxTkReprLen : nat
+
+// ------------------------------------------------------------------------
+val tk_repr :
+     ki : epoch
+  -> s  : (;ki) stream{s=EmptyStream(ki)}
+  -> u  : username
+  -> tk : token
+  -> (;ki, s, (0, MaxTkReprLen)) delta
+
+val tk_plain :
+     ki : epoch
+  -> s  : (;ki) stream
+  -> r  : range
+  -> d  : (;ki, s, r) delta
+
+  -> (username * token) option
+
+// ------------------------------------------------------------------------
+val rp_repr :
+     ki : epoch
+  -> s  : (;ki)stream
+  -> b  : bool
+  -> (;ki, s, (0, MaxTkReprLen)) delta
+
+val rp_plain :
+     ki : epoch
+  -> s  : (;ki) stream
+  -> r  : range
+  -> d  : (;ki, s, r) delta
+  -> bool

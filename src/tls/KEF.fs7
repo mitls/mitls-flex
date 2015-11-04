@@ -1,0 +1,50 @@
+(*
+ * Copyright 2015 INRIA and Microsoft Corporation
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *)
+
+module KEF
+
+open Bytes
+open TLSConstants
+open TLSInfo
+open PMS
+open PRF
+open CoreKeys
+
+// concrete PMS --> MS derivation.
+// this implements the KEF call in the "generic ms-KEM construction".
+
+val extract:
+    si:SessionInfo ->
+	pms: pms { si.pmsId = PmsId(pms) } ->
+    (;si) PRF.masterSecret
+
+val extract_extended:
+    si:SessionInfo ->
+	pms: pms { si.pmsId = PmsId(pms) } ->
+    (;si) PRF.masterSecret
+
+private val accessRSAPMS: pk:RSAKey.pk -> cv:ProtocolVersion -> (;pk,cv) rsapms -> rsarepr
+private val accessDHPMS: p:bytes -> g:bytes -> gx:(;p,g)DHGroup.elt -> gy:(;p,g)DHGroup.elt -> pms: (;p,g,gx,gy)dhpms -> bytes
+private val accessPMS: pms -> bytes
+
+// log storing idealized master secrets
+type entry = i:msId * (;i) ms
+private val log: entry list ref
+private val assoc: i:msId -> entry list -> (;i) PRF.ms option
+
+//internal functions performing concrete extraction
+private val extractMS: si:SessionInfo {not HonestMS(MsI(si))} -> p:bytes -> (;si) PRF.masterSecret
+private val extractMS_extended: si:SessionInfo {not HonestMS(MsI(si))} -> p:bytes -> (;si) PRF.masterSecret

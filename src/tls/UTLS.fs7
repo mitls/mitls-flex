@@ -1,0 +1,95 @@
+(*
+ * Copyright 2015 INRIA and Microsoft Corporation
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *)
+
+module UTLS
+
+open Error
+open TLSError
+open Bytes
+open TLSInfo
+open DataStream
+open Dispatch
+open TLS
+
+(* ------------------------------------------------------------------------ *)
+type rawfd   = Tcp.NetworkStream
+type fd      = int
+type queryhd = int
+
+(* ------------------------------------------------------------------------ *)
+val EI_BADHANDLE  : i:int{i = 0-1}
+val EI_BADCERTIDX : i:int{i = 0-2}
+val EI_READERROR  : i:int{i = 0-3}
+val EI_CLOSE      : i:int{i = 0-4}
+val EI_FATAL      : i:int{i = 0-5}
+val EI_WARNING    : i:int{i = 0-6}
+val EI_CERTQUERY  : i:int{i = 0-7}
+val EI_HANDSHAKEN : i:int{i = 0-8}
+val EI_DONTWRITE  : i:int{i = 0-9}
+val EI_WRITEERROR : i:int{i = 0-10}
+val EI_MUSTREAD   : i:int{i = 0-11}
+val EI_HSONGOING  : i:int{i = 0-12}
+
+(* ------------------------------------------------------------------------ *)
+private type handleinfo = {
+    conn     : TLS.Connection;
+	canwrite : bool;
+}
+
+function val HandleConn: handleinfo -> TLS.Connection
+function val HandleCanWrite: handleinfo -> bool
+private definition !b,c. HandleConn({conn = c; canwrite = b}) = c
+private definition !b,c. HandleCanWrite({conn = c; canwrite = b}) = b
+
+predicate CanWriteP of bool * TLS.Connection
+
+definition !b, c. (b = true => CanWrite(CnInfo(c))) => CanWriteP(b, c)
+definition !b, c. CanWriteP(b, c) => (b = true => CanWrite(CnInfo(c)))
+
+type Phandleinfo = h:handleinfo{ CanWriteP(HandleCanWrite(h), HandleConn(h)) }
+
+type fdmap = (fd * Phandleinfo) list
+
+(* ------------------------------------------------------------------------ *)
+private val handleinfo_of_conn : Connection -> Phandleinfo
+
+(* ------------------------------------------------------------------------ *)
+private val fds : fdmap ref
+private val fdc : int ref
+
+private val new_fd : Connection -> fd
+
+private val unbind_fd_r : fd -> fdmap -> fdmap
+private val unbind_fd   : fd -> unit
+
+private val connection_of_fd_r : fd -> fdmap -> Phandleinfo option
+private val connection_of_fd   : fd -> Phandleinfo option
+
+private val update_fd_connection_r : fd -> b:bool -> c:Connection{CanWriteP(b, c)} -> fdmap -> fdmap
+private val update_fd_connection   : fd -> b:bool -> c:Connection{CanWriteP(b, c)} -> unit
+
+(* ------------------------------------------------------------------------ *)
+private val mkDelta : c:Connection{CanWrite(CnInfo(c))} -> b:bytes ->
+  (;ConnectionEpochOut(c), CnStream_o(c)) msg_o
+
+(* ------------------------------------------------------------------------ *)
+val canwrite : fd -> int
+val read     : fd -> int * bytes
+val write    : fd -> bytes -> int
+val shutdown : fd -> unit
+
+val connect          : rawfd -> config -> fd
+val accept_connected : rawfd -> config -> fd

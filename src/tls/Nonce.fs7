@@ -1,0 +1,37 @@
+(*
+ * Copyright 2015 INRIA and Microsoft Corporation
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *)
+
+module Nonce
+
+(* This module is typechecked. *)
+
+open Bytes
+open TLSConstants
+
+val random: n:nat -> (;n)lbytes
+
+private val mkHelloRandom_int : ProtocolVersion -> b:(;32)lbytes
+
+val mkHelloRandom: ProtocolVersion -> b:(;32)lbytes
+// the idealized code returns globally pairwise-distinct values
+// this is securely implemented inasmuch as random values have a negligible probability of collision
+// (we may additionally enforce being distinct from prior adversarial nonces)
+
+val noCsr: (;64) lbytes
+// null value for indexing the initial epoch
+
+private val log: (;32) lbytes list ref
+private val timestamp: unit -> (;4) lbytes

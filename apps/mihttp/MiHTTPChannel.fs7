@@ -1,0 +1,120 @@
+(*
+ * Copyright 2015 INRIA and Microsoft Corporation
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *)
+
+module MiHTTPChannel
+
+open Bytes
+open TLSInfo
+open TLSConstants
+open Dispatch
+open TLS
+
+open MiHTTPCookie
+open MiHTTPWorker
+open MiHTTPData
+
+type channelid = bytes
+type hostname  = string
+
+type channel_infos = {
+	channelid : channelid;
+	hostname  : hostname;
+}
+
+private type (;ci:channel_infos) request = {
+    uri : string;
+}
+
+private type (;ci:channel_infos) status = {
+    done_       : ((;ci) request * cdocument) list;
+    credentials : string option;
+    cookies     : cookie list;
+}
+
+private type channel = {
+	channel : infos:channel_infos * ((;infos) status) ref;
+	lock    : MiHTTPWorker.lock;
+}
+
+type auth =
+| ACert of string
+
+type cstate = {
+    c_channelid   : cbytes;
+    c_hostname    : hostname;
+    c_credentials : string option;
+}
+
+function val CInfos : channel -> channel_infos
+definition !i,s,l. CInfos({ channel = (i, s); lock = l; }) = i
+
+type (;h:hostname) rchannel = c:channel{CInfos(c).hostname = h}
+
+private val create_with_id : channelid -> h:hostname -> (;h) rchannel
+
+private val create_config : sname:string -> cname:string
+  -> c:config{c.server_name = sname /\ c.client_name = cname}
+
+private val create : h:hostname -> (;h) rchannel
+
+private val get_cn_of_credentials :
+  c:(string option) -> s:string{
+       (     c = None     => s = "")
+	/\ (!cn. c = Some(cn) => s = cn)
+  }
+
+private val request_of_string : c:Connection -> string ->
+	r:Range.range * (;ConnectionEpochOut(c),CnStream_o(c),r)DataStream.delta
+
+private val add_cdocument_to_channel : c:channel -> (;c) request -> cdocument -> unit
+
+val cinfos: c:channel -> ci:channel_infos{ci = CInfos(c)}
+
+(* HTTPS connection established. We wait for the first HS *)
+private val wait_handshake : Connection -> c:Connection{CanWrite(CnInfo(c))}
+
+(* HTTPS connection established and handshaken. Send request *)
+private val full_write :
+     c:TLS.Connection{CanWrite(CnInfo(c))}
+  -> r:Range.range * (;ConnectionEpochOut(c),CnStream_o(c),r)DataStream.delta
+  -> c':TLS.Connection{CanWrite(CnInfo(c'))}
+
+(* HTTPS request sent. Reading answer *)
+private val full_read :
+     c:TLS.Connection
+  -> d:document
+  -> (c':TLS.Connection{Auth(ConnectionEpochIn(c')) => EvClose(CnInfo(c').id_in, Bytes_i(c'))})
+      * cdocument option
+
+(* Bind a channel to a hostname *)
+val connect : h:hostname -> (;h) rchannel
+
+(* Upgrade credentials of a channel *)
+val upgrade_credentials : c:channel -> auth option -> (;CInfos(c)) status
+
+(* Worker function executing a request *)
+val dorequest : c:channel -> auth option -> (;c) request -> unit
+
+(* Worker function polling a response *)
+val dopoll : c:channel -> ((;c) request * cdocument) option
+
+(* Saving/restoring a channel *)
+val save_channel : channel -> cstate
+val restore_channel : cstate -> channel
+
+(* Top-level functions for requests/polling *)
+val request : channel -> auth option -> string -> unit
+val poll : c:channel -> ((;c) request * cdocument) option

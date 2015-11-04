@@ -1,0 +1,119 @@
+(*
+ * Copyright 2015 INRIA and Microsoft Corporation
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *)
+
+module LHAE
+
+(* Implements Length-Hiding Authenticated Encryption
+   for all "aeAlg" constructions: MtE, MacOnly, GCM;
+   used by StatefulLHAE, parameterized by LHAEPlain. *)
+
+open Bytes
+open Error
+open TLSError
+open TLSInfo
+open Range
+
+open TLSConstants
+
+type cipher = b:bytes{Length(b) <= max_TLSCipher_fragment_length}
+(* no need to be more precise on the length *)
+
+private type (;i:id,rw:rw) LHAEKey =
+    | MtEK of ka:(;i)MAC.key * ke:(;i,rw)ENC.state
+    | MACOnlyK of (;i)MAC.key
+    | GCM of (;i,rw)AEAD_GCM.state
+
+type (;i:id)encryptor = (;i,Writer)LHAEKey
+type (;i:id)decryptor = (;i,Reader)LHAEKey
+
+function val KeyDerivationIVSize: aeAlg -> nat
+definition !mac.     KeyDerivationIVSize(MACOnly(mac))            = 0
+definition !mac.     KeyDerivationIVSize(MtE(Stream_RC4_128,mac)) = 0
+definition !enc,mac. KeyDerivationIVSize(MtE(CBC_Fresh(enc),mac)) = 0
+definition !enc,mac. KeyDerivationIVSize(MtE(CBC_Stale(enc),mac)) = BlockSize(enc)
+assume !a. KeyDerivationIVSize(a) >= 0
+
+function val KeySize: a:aeAlg -> nat
+definition !mac.     KeySize(MACOnly(mac))  = MacKeySize(mac)
+definition !enc,mac. KeySize(MtE(enc,mac))  = MacKeySize(mac) + EncKeySize(enc) + KeyDerivationIVSize(MtE(enc,mac))
+definition !enc,prf. KeySize(AEAD(enc,prf)) = AEADKeySize(enc) + AEADIVSize(enc)
+
+ask !i,mac.     i.aeAlg = MACOnly(mac) => KeySize(i.aeAlg) = MacKeySize(mac)
+
+val GEN:    i:id     -> (;i)encryptor * (;i)decryptor
+val COERCE: i:id{not AuthId(i)} -> rw:rw -> b:bytes{Length(b) = KeySize(i.aeAlg)} -> (;i,rw)LHAEKey
+val LEAK:   i:id{not AuthId(i)} -> rw:rw -> (;i,rw)LHAEKey -> b:bytes
+
+private val mteKey: i:id -> rw:rw -> (;i) MAC.key -> (;i,rw) ENC.state -> (;i,rw) LHAEKey
+private val gcmKey: i:id -> rw:rw -> (;i,rw) AEAD_GCM.state -> (;i,rw)LHAEKey
+
+// We have two variants for encryption and decryption:
+// the first (primed) is concrete; the second is idealized at safe indexes,
+// using either #ideal_F (filtering out non-cipher) or #ideal (decrypting just by lookup)
+
+predicate ENCrypted of e:id * ad:(;e)LHAEPlain.adata * cipher
+
+private definition !e,enc,mac,ad,c.
+  e.aeAlg = MtE(enc,mac)   => (ENCrypted(e,ad,c) <=> ?p. ENC.ENCrypted(e,ad,c,p))
+private definition !e,aenc,mac,ad,c.
+  e.aeAlg = AEAD(aenc,mac) => (ENCrypted(e,ad,c) <=> ?p. AEAD_GCM.ENCrypted(e,ad,c,p))
+
+ask !e,enc,mac,ad,c.
+  e.aeAlg = MtE(enc,mac) /\ ( SafeId(e) => ENCrypted(e,ad,c)) =>
+  (SafeId(e) => (?p. ENC.ENCrypted(e,ad,c,p)))
+
+ask !e,enc,mac,ad,c,p.
+  e.aeAlg = MtE(enc,mac) /\ ( SafeId(e) => ENC.ENCrypted(e,ad,c,p) ) =>
+  (SafeId(e) => ENCrypted(e,ad,c))
+
+private val encrypt': i:id -> (;i) encryptor -> ad:(;i)LHAEPlain.adata ->
+  rg:range -> p:(;i,ad,rg) LHAEPlain.plain ->
+  ((;i) encryptor * c:cipher){Length(c) = TargetLength(i,rg) /\
+                             (SafeId(i) => ENCrypted(i,ad,c))}
+
+val encrypt : i:id -> (;i) encryptor -> ad:(;i)LHAEPlain.adata ->
+  rg:range -> p:(;i,ad,rg) LHAEPlain.plain ->
+  ((;i) encryptor * c:cipher){Length(c) = TargetLength(i,rg) /\
+                             (SafeId(i) => ENCrypted(i,ad,c))}
+
+type entry =
+  i:id * ad:(;i) LHAEPlain.adata * rg:range *
+  p:(;i,ad,rg) LHAEPlain.plain * c:ENC.cipher {ENCrypted(i,ad,c)}
+private val log: entry list ref
+private val cmem: i:id -> ad:(;i)LHAEPlain.adata -> c:cipher ->
+  entry list -> res:(r:range * (;i,ad,r)LHAEPlain.plain) option {
+    ( !rg,p. res = Some ((rg,p)) => (ENCrypted(i,ad,c) /\ rg = CipherRangeClass(i,Length(c))) ) /\
+	( res = None => not ENCrypted(i,ad,c) )}
+
+private val decrypt': i:id -> k:(;i) decryptor -> ad:(;i)LHAEPlain.adata ->
+  c:cipher{SafeId(i) => ENCrypted(i,ad,c)} -> res:
+  ( (
+    (;i) decryptor *
+    rg:range *
+    p:(;i,ad,rg) LHAEPlain.plain) {rg = CipherRangeClass(i,Length(c))} ) Result
+
+val decrypt: i:id -> (;i) decryptor -> ad:(;i)LHAEPlain.adata ->
+  c:cipher -> res:
+  ( ((;i) decryptor *  rg:range * (;i,ad,rg) LHAEPlain.plain)
+     {rg = CipherRangeClass(i,Length(c))}
+  ) Result
+   {
+    (SafeId(i) =>
+        (   (!k,r,p. res = Correct((k,r,p)) => ENCrypted(i,ad,c))
+	 /\ (ENCrypted(i,ad,c) => (?p,k,r'. res = Correct((k,r',p))))
+		))}
+// The last two lines are equivalent to (but easier to verify than)
+// !p. ENC.ENCrypted(i,ad,c,p) <=> (?k,r. res = Correct((k,r,p)))

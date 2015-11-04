@@ -1,0 +1,44 @@
+(*
+ * Copyright 2015 INRIA and Microsoft Corporation
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *)
+
+module HMAC
+
+(* Core HMAC algorithms; trusted only on their tag lengths *)
+
+open Bytes
+open TLSConstants
+
+type key = bytes
+type data = bytes
+type mac = bytes
+
+val ssl_pad1_md5:  bytes
+val ssl_pad2_md5:  bytes
+val ssl_pad1_sha1: bytes
+val ssl_pad2_sha1: bytes
+
+private val sslKeyedHashPads: hashAlg -> bytes * bytes
+private val sslKeyedHash: hashAlg -> key -> data -> mac
+private val sslKeyedHashVerify: hashAlg -> key -> data -> mac -> bool
+private val hmac: hashAlg -> key -> data -> mac
+private val hmacVerify: hashAlg -> key -> data -> mac -> bool
+
+val tls_mac:
+  a:macAlg -> k:key {Length(k)=MacKeySize(a)} ->
+  data -> t:mac {Length(t)=MacSize(a)}
+val tls_macVerify:
+  a:macAlg -> k:key {Length(k)=MacKeySize(a)} ->
+  data -> t:mac {Length(k)=MacSize(a)} -> bool

@@ -1,0 +1,41 @@
+AUTHORS
+CHANGELOG
+LICENSE
+miTLS_icla.txt
+MANIFEST
+README.md
+
+Makefile
+Makefile.config
+
+scripts/distribution
+
+data/dh/default-dh.pem
+data/dh/dhparams-db.bin
+data/logjam/dhparam.pem
+data/logjam/scream.txt
+
+3rdparty/licenses/FifteenBelow.Json.txt
+3rdparty/licenses/OpenSSL.txt
+3rdparty/libeay32-x86.dll
+3rdparty/libeay32-x64.dll
+3rdparty/licenses/python.txt
+3rdparty/pyruntime/ucs2-win/Python.Runtime.dll
+3rdparty/pyruntime/ucs4-unix/Python.Runtime.dll
+
+VS/miTLS.sln
+
+src/tls/interactive/easycrypt/*.ec
+# find:VS/packages:*
+
+# find:3rdparty:*.dll
+# find:libs/DB/lib:*.dll
+
+# VS Projects
+vs:VS/miTLS.sln:CoreCrypto,DB,DHDBManager,Platform,OpenSSL,tls,TLSharp,echo,HttpServer,pwapp,mitls,mihttp,FlexTLS,FlexApps
+
+# tests
+tests/Makefile
+tests/pki/Makefile
+tests/pki/config/ca.config
+tests/pki/support/mono-crt-cleanup.py

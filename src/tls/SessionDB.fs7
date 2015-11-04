@@ -1,0 +1,44 @@
+(*
+ * Copyright 2015 INRIA and Microsoft Corporation
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *)
+
+module SessionDB
+
+(* Database storing live sessions towards resumption;
+   We verify a simplified in-memory database with the same contents,
+   but we trust its System.Data.SQLite implementation *)
+
+open Bytes
+open Date
+open TLSInfo
+
+predicate Authorize of Role * SessionInfo
+
+type (;sid:sessionID, r:Role) StorableSession = si:SessionInfo * (;si) PRF.masterSecret * epoch
+  { si.sessionID = sid /\
+    (r = Client => Authorize(r,si)) /\
+    (r = Server /\ si.client_auth = true => Authorize(r,si))}
+
+type SessionIndex = sessionID * Role * Cert.hint
+type entry = sid:sessionID * r:Role *  Cert.hint * (;sid,r) StorableSession
+type t = entry list
+
+val create: config -> t
+val select: t -> sid:sessionID -> r:Role -> Cert.hint -> ((;sid,r) StorableSession) option
+val insert: t -> sid:sessionID -> r:Role -> Cert.hint -> (;sid,r) StorableSession -> t
+val remove: t -> sid:sessionID -> r:Role -> Cert.hint -> t
+
+// Useful for the user of miTLS
+val getAllStoredIDs: t -> SessionIndex list

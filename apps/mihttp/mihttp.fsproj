@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">x86</Platform>
+    <ProductVersion>8.0.30703</ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{f5b505a7-ea88-45cc-a001-46d67077f382}</ProjectGuid>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>mihttp</RootNamespace>
+    <AssemblyName>mihttp</AssemblyName>
+    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
+    <TargetFrameworkProfile>Client</TargetFrameworkProfile>
+    <Name>mihttp</Name>
+    <TargetFSharpCoreVersion>4.3.0.0</TargetFSharpCoreVersion>
+    <MinimumVisualStudioVersion Condition="'$(MinimumVisualStudioVersion)' == ''">11</MinimumVisualStudioVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x86' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <Tailcalls>false</Tailcalls>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <WarningLevel>3</WarningLevel>
+    <PlatformTarget>x86</PlatformTarget>
+    <DocumentationFile>bin\Debug\mihttp.XML</DocumentationFile>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x86' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <Tailcalls>true</Tailcalls>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <WarningLevel>3</WarningLevel>
+    <PlatformTarget>x86</PlatformTarget>
+    <DocumentationFile>bin\Release\mihttp.XML</DocumentationFile>
+  </PropertyGroup>
+  <Choose>
+    <When Condition="'$(OS)' == 'Unix'">
+      <PropertyGroup>
+        <!-- <FSharpTargetsPath>$(MSBuildExtensionsPath32)\FSharp\1.0\Microsoft.FSharp.Targets</FSharpTargetsPath> -->
+        <FSharpTargetsPath>$(MSBuildExtensionsPath32)\..\Microsoft F#\v4.0\Microsoft.FSharp.Targets</FSharpTargetsPath>
+      </PropertyGroup>
+    </When>
+    <Otherwise>
+      <Choose>
+        <When Condition="'$(VisualStudioVersion)' == '11.0'">
+          <PropertyGroup>
+            <FSharpTargetsPath>$(MSBuildExtensionsPath32)\..\Microsoft SDKs\F#\3.0\Framework\v4.0\Microsoft.FSharp.Targets</FSharpTargetsPath>
+          </PropertyGroup>
+        </When>
+        <Otherwise>
+         <PropertyGroup>
+            <FSharpTargetsPath>$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\FSharp\Microsoft.FSharp.Targets</FSharpTargetsPath>
+          </PropertyGroup>
+        </Otherwise>
+      </Choose>
+    </Otherwise>
+  </Choose>
+  <Import Project="$(FSharpTargetsPath)" Condition="Exists('$(FSharpTargetsPath)')" />
+  <PropertyGroup>
+  </PropertyGroup>
+  <Target Name="AfterBuild" Condition="'$(OS)' == 'Windows_NT'">
+    <Copy SourceFiles="$(ProjectDir)\..\..\3rdparty\libeay32-$(PlatformName).dll" DestinationFiles="$(OutDir)/libeay32.dll" />
+  </Target>
+  <Target Name="AfterClean">
+    <CreateItem Include="$(OutDir)\*.dll;$(OutDir)\*.exe;$(OutDir)\*.mdb;$(OutDir)\*.pdb">
+      <Output ItemName="ToDel" TaskParameter="Include" />
+    </CreateItem>
+    <Delete Files="$(OutDir)\$(Name).XML" />
+    <Delete Files="@(ToDel)" />
+  </Target>
+  <ItemGroup>
+    <None Include="MiHTTPUtils.fs7" />
+    <Compile Include="MiHTTPUtils.fsi" />
+    <Compile Include="MiHTTPUtils.fs" />
+    <None Include="MiHTTPCookie.fs7" />
+    <Compile Include="MiHTTPCookie.fsi" />
+    <Compile Include="MiHTTPCookie.fs" />
+    <None Include="MiHTTPWorker.fs7" />
+    <Compile Include="MiHTTPWorker.fsi" />
+    <Compile Include="MiHTTPWorker.fs" />
+    <None Include="MiHTTPData.fs7" />
+    <Compile Include="MiHTTPData.fsi" />
+    <Compile Include="MiHTTPData.fs" />
+    <None Include="MiHTTPChannel.fs7" />
+    <Compile Include="MiHTTPChannel.fsi" />
+    <Compile Include="MiHTTPChannel.fs" />
+    <Compile Include="MiHTTPInstanceDB.fsi" />
+    <Compile Include="MiHTTPInstanceDB.fs" />
+    <Compile Include="MiHTTP.fs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="FSharp.Core, Version=$(TargetFSharpCoreVersion), Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="mscorlib" />
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Numerics" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\libs\DB\DB.fsproj">
+      <Name>DB</Name>
+      <Project>{cad78b05-0adc-433b-954b-1f31fc6477f6}</Project>
+      <Private>True</Private>
+    </ProjectReference>
+    <ProjectReference Include="..\..\libs\Platform\Platform.fsproj">
+      <Name>Platform</Name>
+      <Project>{408e6f53-363a-4c58-9808-84a0b526324b}</Project>
+      <Private>True</Private>
+    </ProjectReference>
+    <ProjectReference Include="..\..\src\tls\tls.fsproj">
+      <Name>tls</Name>
+      <Project>{7283c0ef-3c40-495d-9969-79cb71b3aacc}</Project>
+      <Private>True</Private>
+    </ProjectReference>
+  </ItemGroup>
+</Project>

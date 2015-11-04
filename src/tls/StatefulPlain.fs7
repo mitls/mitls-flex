@@ -1,0 +1,171 @@
+(*
+ * Copyright 2015 INRIA and Microsoft Corporation
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *)
+
+module StatefulPlain
+
+(* 'plain' module for Stateful AEAD *)
+
+open Bytes
+open TLSConstants
+open TLSInfo
+open Error
+open TLSError
+open Range
+
+(* The authenticated record header includes the content type + the protocol version if > SSL3. *)
+
+function val ADLength: id -> nat
+private definition !i.
+    (i.pv = SSL_3p0  => ADLength(i) = 1) /\
+    (i.pv <> SSL_3p0 => ADLength(i) = 3)
+ask !i. 0 <= ADLength(i) // needed for parsing and not entailed by ADLength's type
+
+type (;i:id) adata = (b:bytes){Length(b) = ADLength(i)}
+
+function val ADBytes: id * ContentType -> cbytes //(;i)StatefulPlain.adata
+private definition !i,ct.
+	(PvOfId(i)  = SSL_3p0  => ADBytes(i,ct) = CTBytes(ct) ) /\
+	(PvOfId(i) <> SSL_3p0  => ADBytes(i,ct) = (CTBytes(ct) @| VersionBytes(i.pv )))
+
+function val ParseAD: i:id * cbytes -> ContentType
+private theorem !i,ct,b. ParseAD(i,ADBytes(i,ct)) = ct
+
+//private definition !i,b.
+//	(PvOfId(i)  = SSL_3p0  =>  ParseAD(i,b) = ParseCT(b)) /\
+//	(PvOfId(i) <> SSL_3p0 /\ b= prefix @| VersionBytes(i.pv) => ParseAD(i,b) = ParseCT(prefix) )
+//ADBytes(i,ct) = (CTBytes(ct) @| VersionBytes(i.pv )))
+
+val makeAD:  i:id -> ct:ContentType -> ad:(;i)adata{B(ad)=ADBytes(i,ct)}
+private val parseAD: i:id -> ad:(;i)adata -> ct:ContentType{B(ad)=ADBytes(i,ct)}
+
+ask !i,ct,ad. B(ad)=ADBytes(i,ct) => ParseAD(i,B(ad))=ct
+
+private type (;i:id,ad:cbytes,r:range) fragment = {contents: (;i,ParseAD(i,ad),r)TLSFragment.fragment}
+
+function val Payload: i:id * ad:cbytes * r:range * (;i,ad,r)fragment -> cbytes
+private definition !i,ad,r,f.
+    Payload(i,ad,r,f) = TLSFragment.Payload(i,ParseAD(i,ad),r,f.contents)
+
+(* We logically define the id history by induction on sent fragments. *)
+
+// The sequence of messages
+type (;i:id) prehistory = (ad:(;i)adata * r:range * f:(;i,B(ad),r)fragment) list
+
+// The message sequence number (kept independently, as this is not ghost state)
+function val HLength: i:id * (;i)prehistory -> nat
+private definition !i.          HLength(i,[]) = 0
+private definition !i,h,ad,r,f. HLength(i,(ad,r,f)::h) = HLength(i,h)+1
+
+predicate StAEHistory of i:id * (;i)prehistory
+
+type (;i:id)history = (sn:nat * ph:(;i)prehistory){sn = HLength(i,ph) /\ (AuthId(i) => StAEHistory(i,ph))}
+function val SeqN: i:id * (;i)history -> nat
+definition !i,sn,h. SeqN(i,(sn,h)) = sn
+
+function val EmptyHistory: i:id -> (;i) history
+function val ExtendHistory: i:id * ad:(;i)adata * h:(;i) history * r:range * (;i,ad,r) fragment -> 'a //(;i)history
+private definition !i. EmptyHistory(i) = (0,[])
+private definition !i,n,h,d,r,f. ExtendHistory(i,d,(n,h),r,f) = (n+1,(d,r,f)::h)
+
+function val StAEToRecord: i:id * ct:ContentType * r:range * f:(;i,ADBytes(i,ct),r)fragment -> 'a //(;i,ct,r)TLSFragment.fragment
+private definition !i,ct,r,f. StAEToRecord(i,ct,r,f) = f.contents
+
+function val Multiplexed: e:epoch * (;Id(e)) history -> 'b //(;e)TLSFragment.history
+definition !e.
+    Multiplexed(e,EmptyHistory(Id(e))) = TLSFragment.EmptyHistory(e)
+definition !e,ad,sh,r,f,ct.
+    Multiplexed(e,ExtendHistory(Id(e),ad,sh,r,f)) =
+    TLSFragment.ExtendHistory(e,ParseAD(Id(e),B(ad)),
+                   Multiplexed(e,sh),
+                   r,StAEToRecord(Id(e),ParseAD(Id(e),B(ad)),r,f))
+
+predicate Sent of i:id * ad:cbytes *  h:(;i)history * r:range * (;i,ad,r)fragment
+
+private definition !i,ad,sh,r,f.
+    Sent(i,ad,sh,r,f) <=>
+	 (?e. i = Id(e) /\
+              TLSFragment.RecordSent(e,ParseAD(i,ad),Multiplexed(e,sh),r,f.contents))
+
+private definition !i. StAEHistory(i,[])
+private definition !i,ad,sn,h,r,f.
+    (StAEHistory(i,h) /\ Sent(i,B(ad),(sn,h),r,f)) => StAEHistory(i,(ad,r,f)::h)
+
+theorem !i,ad,sn,h,r,f.
+    Sent(i,B(ad),(sn,h),r,f) => (StAEHistory(i,h) /\ HLength(i,h) = sn)
+
+//------------------------------------------------------------------------------------------------------
+// `Plain' interface towards StatefulLHAE, encapsulating TLS-specific headers and content types
+//------------------------------------------------------------------------------------------------------
+
+type (;i:id,ad:(;i)adata,h:(;i)history,r:range) plain =
+	f:(;i,B(ad),r)fragment{AuthId(i) => Sent(i,B(ad),h,r,f)}
+
+val plain:
+  i:id{not AuthId(i)} -> h:(;i)history -> ad:(;i)adata -> r:range ->
+  b:(;r)rbytes -> p:(;i,ad,h,r) plain {B(b) = Payload(i,B(ad),r,p)}
+val repr:
+  i:id{not SafeId(i)} -> h:(;i)history -> ad:(;i)adata -> r:range ->
+  p:(;i,ad,h,r) plain -> b:(;r)rbytes {B(b) = Payload(i,B(ad),r,p)}
+val reprFragment:
+  i:id{not SafeId(i)} -> ad:(;i)adata -> r:range ->
+  f:(;i,B(ad),r) fragment -> b:(;r)rbytes {B(b) = Payload(i,B(ad),r,f)}
+
+val makeExtPad:  i:id -> ad:(;i)adata -> r:range -> f:(;i,B(ad),r)fragment -> f':(;i,B(ad),r)fragment{f=f'}
+val parseExtPad: i:id -> ad:(;i)adata -> r:range -> f:(;i,B(ad),r)fragment -> res:((f':(;i,B(ad),r)fragment{f=f'}) Result){?f. res = Correct(f)}
+
+val widen:
+  i:id -> ad:(;i)adata -> r:range ->
+  f:(;i,B(ad),r) fragment ->
+  f':(;i,B(ad),RangeClass(i,r)) fragment{
+    Payload(i,B(ad),r,f) = Payload(i,B(ad),RangeClass(i,r),f')
+    /\
+    !h. Sent(i,B(ad),h,r,f) => Sent(i,B(ad),h,RangeClass(i,r),f')}
+
+//------------------------------------------------------------------------------------------------------
+// internal interface towards TLSFragment
+//------------------------------------------------------------------------------------------------------
+
+val emptyHistory: i:id -> h:(;i)history{h = EmptyHistory(i)}
+val extendHistory: i:id -> ad:(;i)adata ->
+	h:(;i)history -> r:range -> f:(;i,ad,h,r)plain ->
+	h':(;i)history{h' = ExtendHistory(i,ad,h,r,f)}
+
+//------------------------------------------------------------------------------------------------------
+// Auxiliary definitions for typing
+//------------------------------------------------------------------------------------------------------
+
+private val consHistory:
+    i:id -> h:(;i)prehistory -> ad:(;i)adata -> r:range ->
+	f:(;i,B(ad),r)fragment -> h':(;i)prehistory{h' = (ad,r,f)::h}
+
+assume !i,ad,h,h',r,f. (AuthId(i) /\ StAEHistory(i,h) /\ StAEHistory(i,h') /\ HLength(i,h) = HLength(i,h')) => h = h'
+
+val RecordPlainToStAEPlain:
+    e:epoch -> ct:ContentType ->
+    ad:(;Id(e))adata{B(ad) = ADBytes(Id(e),ct)}  ->
+    h:(;e) TLSFragment.history ->
+    sh:(;Id(e)) history{h = Multiplexed(e,sh)} ->
+    rg:range ->
+    f:(;e,ct,h,rg) TLSFragment.plain ->
+    sf:(;Id(e),ad,sh,rg) plain{f = StAEToRecord(Id(e),ct,rg,sf)}
+
+val StAEPlainToRecordPlain:
+    e:epoch -> ct:ContentType{ct = Application_data => OpenState(e)} ->
+    ad:(;Id(e))adata{B(ad) = ADBytes(Id(e),ct)} ->
+    h:(;e) TLSFragment.history ->
+    sh:(;Id(e)) history{h = Multiplexed(e,sh)} -> rg:range ->
+    d:(;Id(e),ad,sh,rg) plain ->
+    f:(;e,ct,h,rg) TLSFragment.plain{f=StAEToRecord(Id(e),ct,rg,d)}

@@ -1,0 +1,89 @@
+(*
+ * Copyright 2015 INRIA and Microsoft Corporation
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *)
+
+module Cert
+
+(* Key and Certificate Store
+
+   Only the reading part of key and certificate management is miTLS is implemented
+   using F#.
+
+   make pki.built in ../tests/ generates RSA and DH certificates that are added to
+   the certificate store. This functionality is trusted and unverfified.
+
+   Depending on who generated and added keys to the certificate store and on whether
+   they are correctly used, e.g.  no dual-purpose key use, we consider public keys
+   to be Sig.Honest or RSAKey.Honest in verified code.
+
+ *)
+
+open Bytes
+open Error
+open TLSError
+open TLSConstants
+open UntrustedCert
+
+type hint = UntrustedCert.hint (* hostname CN *)
+type cert = UntrustedCert.cert (* public part of a certificate *)
+type chain = c:UntrustedCert.chain{c <> []}
+
+function val SigPKCert: cert list * a:Sig.alg -> 'a //(;a)Sig.pkey
+function val RSAPKCert: cert list -> RSAKey.pk
+
+type sign_cert = (c:chain * a:Sig.alg * sk:(;a)Sig.skey{SigPKCert(c,a) = Sig.PK(sk)}) option
+type enc_cert = (c:chain * sk:RSAKey.sk{RSAPKCert(c) = RSAKey.PK(sk)}) option
+
+val forall: (X509Certificate2 -> bool) -> X509Certificate2 list -> bool
+
+(* First argument (Sig.alg list) for both functions gives the allowed
+   signing alg. used for signing the key. For [for_signing] TLS1.2
+   allows the signing alg. used for the key to be different from the
+   signing alg. that can be used with that key.
+ *)
+val for_signing        : Sig.alg list -> hint -> Sig.alg list -> sign_cert
+
+val for_key_encryption : Sig.alg list -> hint -> enc_cert
+
+val get_public_signing_key    : cert -> a:Sig.alg -> (;a)Sig.pkey Result
+val get_public_encryption_key : cert -> RSAKey.pk Result
+
+val get_chain_public_signing_key : c:chain -> a:Sig.alg -> (pk:(;a)Sig.pkey{pk=SigPKCert(c,a)}) Result
+
+val signing_gen:     a:Sig.alg -> pk:(;a) Sig.pkey {Sig.Honest(a,pk)}
+
+val get_chain_public_encryption_key : c:chain -> (pk:RSAKey.pk{pk=RSAPKCert(c)}) Result
+
+val is_chain_for_signing:        chain -> bool
+val is_chain_for_key_encryption: chain -> bool
+
+function val CN: chain -> hint
+val get_hint: c:chain -> (cn:hint{cn=CN(c)}) option
+
+val validate_cert_chain : Sig.alg list -> chain -> bool
+
+(* ---- TLS-specific encoding ---- *)
+
+private val consCertificateBytes: c:bytes -> a:bytes ->
+	b:bytes{B(b)=VLBytes(3,B(c)) @| B(a)}
+
+function val CertificateListBytes: cert list -> cbytes
+
+val certificateListBytes: cl:cert list ->
+	b:bytes{B(b)=VLBytes(3,CertificateListBytes(cl))}
+
+val parseCertificateList: b:bytes -> (cl:cert list{B(b) = CertificateListBytes(cl)}) Result
+
+val parseCertificateListInt: b:bytes -> acc:chain -> (cl:chain) Result

@@ -1,0 +1,621 @@
+(*
+ * Copyright 2015 INRIA and Microsoft Corporation
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *)
+
+module TLSInfo
+
+(* This module gathers the definitions of
+   public datatypes, parameters, and predicates for our TLS API.
+
+   Its interface is used by most TLS modules; its implementation is typechecked. *)
+
+open Bytes
+open Date
+open TLSConstants
+
+(**************** SPECIFYING SAFETY (GENERAL COMMENTS) **************
+  In the code of ideal implementations only,
+  we use F# functions that characterize the Safe and Auth predicates.
+
+  We need to typecheck ideal code, so write their modules in the style
+   #if ideal
+   if safe...(...)
+     ... GEN ...
+   else
+   #endif
+     .... COERCE ...
+
+  This requires concrete safe/auth/strong/honest functions,
+  used solely for controlling idealization.
+
+ *)
+
+// -------------------------------------------------------------------
+// Polarity for reading and writing, e.g. for stateful encryption
+type rw = Reader | Writer
+
+type preRole = Client | Server
+type Role = r:preRole{r = Client \/ r = Server}
+
+function val DualRole: Role -> Role
+definition DualRole(Client) = Server
+definition DualRole(Server) = Client
+
+// -------------------------------------------------------------------
+// Application configuration options
+
+type helloReqPolicy =
+    | HRPIgnore
+    | HRPFull
+    | HRPResume
+
+type config = {
+    (* Supported versions, ciphersuites, and compressions *)
+    minVer: ProtocolVersion;
+    maxVer: ProtocolVersion;
+    ciphersuites: cipherSuites;
+    compressions: Compression list;
+
+    (* Handshake specific options *)
+
+    (* Client side *)
+    honourHelloReq: helloReqPolicy;
+    allowAnonCipherSuite: bool;
+    safe_resumption: bool;
+
+    (* Server side *)
+    request_client_certificate: bool;
+    check_client_version_in_pms_for_old_tls: bool;
+
+    (* Common *)
+    safe_renegotiation: bool;
+    server_name: Cert.hint;
+    client_name: Cert.hint;
+
+    (* Sessions database *)
+    sessionDBFileName: string;
+    sessionDBExpiry: TimeSpan;
+
+	(* DH groups database *)
+	dhDBFileName: string;
+	dhDefaultGroupFileName: string;
+	dhPQMinLength: nat * nat
+    }
+
+val defaultConfig: config
+
+// -------------------------------------------------------------------
+// Client/Server randomness (implemented in Nonce)
+
+// their first 4 bytes give the local time,
+// so that they are locally pairwise-distinct
+type random = (;32) lbytes
+type crand = random
+type srand = random
+type csrands = (;64) lbytes
+
+type cVerifyData = bytes (* ClientFinished payload *)
+type sVerifyData = bytes (* ServerFinished payload *)
+type sessionHash = bytes
+
+// -------------------------------------------------------------------
+// We support these extensions, with session scopes
+// (defined here because TLSExtension is internal)
+//type negotiatedExtension =
+//    | NE_extended_ms
+//    | NE_extended_padding
+
+//type negotiatedExtensions = negotiatedExtension list
+
+type negotiatedExtensions = {
+  ne_extended_ms: bool;
+  ne_extended_padding:bool;
+  ne_renegotiation_info: (cVerifyData * sVerifyData) option
+}
+
+// -------------------------------------------------------------------
+// Pre Master Secret indexes
+
+type pmsId = // we use pmsId as an opaque index to pms
+    | NoPmsId
+    | SomePmsId of PMS.pms
+
+function val PmsId: PMS.pms -> pmsId
+definition !pms. PmsId(pms) = SomePmsId(pms)
+val mk_pmsId: pms:PMS.pms -> id:pmsId{ id = PmsId(pms) }
+
+// ``this pms is honestly generated and used only for extraction''
+predicate HonestPMS of pmsId
+definition not HonestPMS(NoPmsId)
+definition !pk,cv,rsapms.    HonestPMS(PmsId(PMS.RSAPMS(pk,cv,rsapms)))   <=> PMS.HonestRSAPMS(pk,cv,rsapms)
+definition !p,g,gx,gy,dhpms. HonestPMS(PmsId(PMS.DHPMS(p,g,gx,gy,dhpms))) <=> PMS.HonestDHPMS(p,g,gx,gy,dhpms)
+val noPmsId: i:pmsId { not HonestPMS(i) }
+val honestPMS: (pi:pmsId) -> b:bool {b=true => HonestPMS(pi)}
+
+// Strengths of Handshake algorithms defined on pmsId
+
+// Here we consider the strength of the parameters in pmsId
+predicate StrongKEX  of pmsId
+private definition !p,g,gx,gy,dhpms. StrongKEX(SomePmsId(PMS.DHPMS(p,g,gx,gy,dhpms))) <=> DHGroup.PP(p,g)
+private definition !pk,cv,rsapms.    StrongKEX(SomePmsId(PMS.RSAPMS(pk,cv,rsapms)))   <=> RSAKey.Strong(cv)
+
+// -------------------------------------------------------------------
+// Master Secret indexes and their properties
+
+// ``kefAlg is a strong randomness extractor, despite all other kefAlgs'', guarding idealization in KEF
+predicate StrongKEF of kefAlg
+val strongKEF: ca:kefAlg -> b:bool {b=true <=> StrongKEF(ca)}
+
+// guarding idealizations for KDF and VerifyData (see PRF.fs)
+predicate StrongKDF of kdfAlg
+predicate StrongVD  of vdAlg
+
+// -------------------------------------------------------------------
+// Session information (public immutable data)
+
+type sessionID = b:bytes {Length(b) <= 32}
+// ``An arbitrary byte sequence chosen by the server
+// to identify an active or resumable session state.''
+// We treat empty_bytes as the absence of identifier.
+
+type SessionInfo = {
+    init_crand: crand;
+    init_srand: srand;
+    protocol_version: ProtocolVersion;
+    cipher_suite: cipherSuite;
+    compression: Compression;
+    extensions: negotiatedExtensions;
+    pmsId: pmsId;
+    session_hash: sessionHash;
+    client_auth: bool;
+    clientID: Cert.cert list;
+    clientSigAlg: Sig.alg;
+    serverID: Cert.cert list;
+    serverSigAlg: Sig.alg;
+    sessionID: sessionID
+    }
+
+// for certificates, the empty list represents the absence of identity
+// (possibly refusing to present requested certs)
+
+// for sessionID, the empty bytes empty_bytes represents the absence of ID,
+// that is, the session is not resumable.
+
+function val CSRands: SessionInfo -> csrands
+definition !si,csr. csr=CSRands(si) <=> B(csr)=B(si.init_crand) @| B(si.init_srand)
+val mk_csrands: si:SessionInfo -> csr:csrands {csr=CSRands(si)}
+
+// Getting algorithms from SessionInfo
+
+function val KefAlg:  SessionInfo -> kefAlg
+definition !si.
+    (si.protocol_version = SSL_3p0 => KefAlg(si) = PRF_SSL3_nested ) /\
+    (si.protocol_version = TLS_1p0 => KefAlg(si) = PRF_TLS_1p01(extract_label)    ) /\
+    (si.protocol_version = TLS_1p1 => KefAlg(si) = PRF_TLS_1p01(extract_label)    ) /\
+    (si.protocol_version = TLS_1p2 => KefAlg(si) = PRF_TLS_1p2(extract_label,CiphersuitePrfMacAlg(si.cipher_suite) ) )
+val mk_kefAlg: si:SessionInfo -> a:kefAlg {a=KefAlg(si)}
+
+function val KefAlgExtended:  SessionInfo -> kefAlg
+definition !si.
+    (si.protocol_version = SSL_3p0 => KefAlgExtended(si) = PRF_SSL3_nested ) /\
+    (si.protocol_version = TLS_1p0 => KefAlgExtended(si) = PRF_TLS_1p01(extended_extract_label)    ) /\
+    (si.protocol_version = TLS_1p1 => KefAlgExtended(si) = PRF_TLS_1p01(extended_extract_label)    ) /\
+    (si.protocol_version = TLS_1p2 => KefAlgExtended(si) = PRF_TLS_1p2(extended_extract_label,CiphersuitePrfMacAlg(si.cipher_suite) ) )
+val mk_kefAlg_extended: si:SessionInfo -> a:kefAlg {a=KefAlgExtended(si)}
+
+function val KdfAlg:  SessionInfo -> kdfAlg
+definition !si.
+    (si.protocol_version = SSL_3p0 => KdfAlg(si) = PRF_SSL3_nested ) /\
+    (si.protocol_version = TLS_1p0 => KdfAlg(si) = PRF_TLS_1p01(kdf_label)    ) /\
+    (si.protocol_version = TLS_1p1 => KdfAlg(si) = PRF_TLS_1p01(kdf_label)    ) /\
+    (si.protocol_version = TLS_1p2 => KdfAlg(si) = PRF_TLS_1p2(kdf_label,CiphersuitePrfMacAlg(si.cipher_suite) ) )
+val mk_kdfAlg: si:SessionInfo -> a:kdfAlg {a=KdfAlg(si)}
+
+function val VdAlg:  SessionInfo -> vdAlg
+definition !si.  VdAlg(si) = (si.protocol_version,si.cipher_suite)
+val mk_vdAlg: si:SessionInfo -> a:vdAlg {a=VdAlg(si)}
+
+function val SIaeAlg: SessionInfo -> aeAlg
+definition !si. SIaeAlg(si) = CipherSuiteAuthEncAlg(si.cipher_suite,si.protocol_version)
+
+type msId =
+  StandardMS of         // We record the parameters used to derive this MS:
+  pms   : pmsId *   // the pms index
+  csr   : csrands * // the nonces
+  kefAlg: kefAlg    // the PMS-PRF algorithm
+| ExtendedMS of
+  pms   : pmsId *       // the pms index
+  sh    : sessionHash * // the hash of the session log
+  kefAlg: kefAlg        // the PMS-PRF algorithm
+
+// ``the MS at this index is abstractly generated and used within PRF''
+predicate HonestMS of msId
+definition !msi.
+  HonestMS(msi) <=> (
+  	(?pmsId,csr,kefAlg. msi = StandardMS(pmsId,csr,kefAlg) /\ HonestPMS(pmsId) /\ StrongKEF(kefAlg))
+  	\/ (?pmsId,sh,kefAlg. msi = ExtendedMS(pmsId,sh,kefAlg) /\ HonestPMS(pmsId) /\ StrongKEF(kefAlg)))
+
+val noMsId: i:msId { not HonestMS(i) }
+
+// Getting master-secret indexes out of SessionInfo
+
+function val MsI: SessionInfo -> msId
+definition !si. (si.extensions.ne_extended_ms = false => MsI(si) = StandardMS (si.pmsId, CSRands(si), KefAlg(si)))
+             /\ (si.extensions.ne_extended_ms = true => MsI(si) = ExtendedMS(si.pmsId,si.session_hash,KefAlgExtended(si)))
+
+val mk_msid: si:SessionInfo -> i:msId { i = MsI(si) }
+
+// Strengths of Handshake algorithms
+
+predicate StrongSig of SessionInfo
+definition !si. StrongSig(si) <=> Sig.Strong(CipherSuiteSigHashAlg(si.cipher_suite))
+
+// ``The algorithms of si are strong for both KDF and VerifyData, despite all others''
+// guarding idealization in PRF
+predicate StrongPRF of SessionInfo
+definition !si. StrongPRF(si) <=> StrongKDF(KdfAlg(si)) /\ StrongVD(VdAlg(si))
+
+// Summarizing all assumptions needed for a strong handshake
+
+predicate StrongHS of SessionInfo
+definition !si. StrongHS(si) <=>
+    StrongKEX(si.pmsId) /\
+    StrongKEF(KefAlg(si)) /\
+    StrongPRF(si) /\
+    StrongSig(si)
+
+// Safety of SessionInfo crypto processing
+
+predicate SafeCRE of SessionInfo // Safe handshake for PMS-based extraction
+definition !si. HonestMS(MsI(si)) <=> SafeCRE(si)
+val safeCRE: (si:SessionInfo) -> b:bool { b=true <=> SafeCRE(si) }
+
+predicate SafeVD  of SessionInfo // Safe handshake for MS-based VerifyData
+definition !si. SafeVD(si) <=> (HonestMS(MsI(si)) /\ StrongVD(VdAlg(si)))
+val safeVD:  (si:SessionInfo) -> b:bool { b=true <=> SafeVD(si) }
+
+predicate StrongAuthSI of SessionInfo
+definition !si. StrongAuthSI(si) <=>
+  (?e,m. CipherSuiteAuthEncAlg(si.cipher_suite,si.protocol_version) = MtE(e,m) /\ INT_CMA_M(m))
+
+predicate StrongAESI of SessionInfo
+definition !si. StrongAESI(si) <=>
+                StrongAEAlg(si.protocol_version,CipherSuiteAuthEncAlg(si.cipher_suite,si.protocol_version))
+
+// -------------------------------------------------------------------
+// Epoch descriptors (public immutable data)
+type abbrInfo =
+    {abbr_crand: crand;
+     abbr_srand: srand;
+     abbr_session_hash: sessionHash;
+     abbr_vd: (cVerifyData * sVerifyData) option}
+
+type preEpoch =
+  | InitEpoch of writer:Role
+  | FullEpoch of si:SessionInfo * pred:preEpoch
+  | AbbrEpoch of ai:abbrInfo * resumed:preEpoch * pred:preEpoch
+
+(*  | SuccEpoch of crand * srand
+               * si:SessionInfo
+               * pred:preEpoch
+*)
+predicate val IsInitEpoch: preEpoch -> bool
+predicate val IsSuccEpoch: preEpoch -> bool
+predicate val IsFullEpoch: preEpoch -> bool
+predicate val IsAbbrEpoch: preEpoch -> bool
+
+private definition !e:preEpoch. IsInitEpoch(e) <=> (?r:Role. e = InitEpoch(r))
+private definition !e:preEpoch.
+        IsFullEpoch(e) <=> (?si:SessionInfo,pe:preEpoch. e = FullEpoch(si,pe))
+private definition !e:preEpoch.
+        IsAbbrEpoch(e) <=> (?ai:abbrInfo,re:preEpoch,pe:preEpoch. e = AbbrEpoch(ai,re,pe))
+
+private definition !e:preEpoch.
+        IsSuccEpoch(e) <=> ((?si:SessionInfo,pe:preEpoch. e = FullEpoch(si,pe)) \/
+                            (?ai:abbrInfo,re:preEpoch,pe:preEpoch. e = AbbrEpoch(ai,re,pe)))
+
+function val Pred: preEpoch -> preEpoch
+private definition (!si,pred. Pred(FullEpoch(si,pred)) = pred) /\
+                   (!ai,re,pred. Pred(AbbrEpoch(ai,re,pred)) = pred)
+
+predicate val IsValidEpoch: preEpoch -> bool
+private definition !e. IsValidEpoch(e) <=> (IsInitEpoch(e) \/
+                                            (IsSuccEpoch(e) /\ IsValidEpoch(Pred(e))))
+
+type epoch = e:preEpoch {IsValidEpoch(e)}
+type succEpoch = e:epoch {IsSuccEpoch(e)}
+
+val isInitEpoch: e:epoch -> b:bool{(b = true /\ IsInitEpoch(e)) \/ (b = false /\ IsSuccEpoch(e))}
+
+function val Peer: epoch -> epoch
+private definition
+    (!r.          Peer(InitEpoch(r))          = InitEpoch(DualRole(r))) /\
+    (!si,p. Peer(FullEpoch(si,p)) = FullEpoch(si,Peer(p))) /\
+    (!ai,r,p. Peer(AbbrEpoch(ai,r,p)) = AbbrEpoch(ai,Peer(r),Peer(p)))
+
+function val EpochSI: succEpoch -> SessionInfo
+private definition (!si,p. EpochSI(FullEpoch(si,p)) = si) /\ (!ai,si,p1,p2. EpochSI(AbbrEpoch(ai,FullEpoch(si,p1),p2)) = si)
+
+function val EpochAI: succEpoch -> abbrInfo
+private definition (!ai,p1,p2. EpochAI(AbbrEpoch(ai,p1,p2)) = ai)
+
+function val EpochCRand: succEpoch -> bytes
+function val EpochSRand: succEpoch -> bytes
+function val EpochCSRands: succEpoch -> bytes
+definition (!si,pe. EpochSRand(FullEpoch(si,pe)) = si.init_srand) /\
+           (!ai,re,pe. EpochSRand(AbbrEpoch(ai,re,pe)) = ai.abbr_srand)
+
+definition (!si,pe. EpochCRand(FullEpoch(si,pe)) = si.init_crand) /\
+           (!ai,re,pe. EpochCRand(AbbrEpoch(ai,re,pe)) = ai.abbr_crand)
+
+definition !csr,e. csr = EpochCSRands(e) <=>
+                       B(csr) =
+                       B(EpochCRand(e)) @| B(EpochSRand(e))
+val epochCRand:   e:succEpoch -> b:srand{B(b) = B(EpochCRand(e))}
+val epochSRand:   e:succEpoch -> b:crand{B(b) = B(EpochSRand(e))}
+val epochCSRands: e:succEpoch -> b:csrands{b = EpochCSRands(e)}
+
+val epochSI: e:succEpoch -> si:SessionInfo{si = EpochSI(e)}
+val epochAI: e:succEpoch -> ai:abbrInfo{ai = EpochAI(e)}
+
+function val EpochWriter: epoch -> Role
+private definition !r. EpochWriter(InitEpoch(r)) = r
+private definition !r,si,pred. EpochWriter(FullEpoch(si,pred)) = EpochWriter(pred)
+private definition !r,ai,r,pred. EpochWriter(AbbrEpoch(ai,r,pred)) = EpochWriter(pred)
+
+val epochWriter: e:epoch -> r:Role {r=EpochWriter(e)}
+
+predicate StrongAuth of epoch
+predicate StrongAE of epoch
+
+definition !e. StrongAuth(e) <=> StrongAuthSI(EpochSI(e))
+definition !e. StrongAE(e)   <=> StrongAESI(EpochSI(e))
+
+// -------------------------------------------------------------------
+// Connection information (public immutable data)
+
+type preConnectionInfo =
+	{ role: Role;
+	  id_rand: random;
+	  id_in:  epoch;
+          id_out: epoch}
+type ConnectionInfo =
+     (p:preConnectionInfo){EpochWriter(p.id_out) = p.role /\
+                           EpochWriter(p.id_in) = DualRole(p.role)}
+
+val connectionRole: ci:ConnectionInfo -> r:Role{r = ci.role}
+
+val initConnection: r:Role -> ra:random -> ci:ConnectionInfo
+  { ci.role = r /\ ci.id_rand = ra /\ IsInitEpoch(ci.id_in) /\ IsInitEpoch(ci.id_out)}
+//val nextEpoch: e:epoch -> c:crand -> s:srand -> si:SessionInfo -> e':succEpoch
+//  { Pred(e') = e /\ EpochSI(e') = si /\ EpochCRand(e') = c /\ EpochSRand(e') = s /\ EpochWriter(e') = EpochWriter(e)}
+
+val fullEpoch: e:epoch -> si:SessionInfo -> e':succEpoch
+  { Pred(e') = e /\ EpochSI(e') = si /\ EpochCRand(e') = si.init_crand /\ EpochSRand(e') = si.init_srand /\
+    EpochWriter(e') = EpochWriter(e)}
+
+val abbrEpoch: e:epoch -> ai:abbrInfo -> si:SessionInfo{si.session_hash = ai.abbr_session_hash} -> pe:epoch -> e':succEpoch
+  { Pred(e') = e /\ EpochSI(e') = si /\ EpochCRand(e') = ai.abbr_crand /\ EpochSRand(e') = ai.abbr_srand /\
+    EpochWriter(e') = EpochWriter(e) }
+
+val predEpoch: e:succEpoch -> e':epoch{ e' = Pred(e)}
+
+// -------------------------------------------------------------------
+// indexing instances of AE --- an abstract parameter for StatefulAEAD et al
+// we do not use more detailed epochs as their additional contents
+// is authenticated only once the handshake completes.
+
+type id = {
+  // indexes and algorithms of the session used in the key derivation
+  msId   : msId;            // the index of the master secret used for key derivation
+  kdfAlg : kdfAlg;          // the KDF algorithm used for key derivation
+  pv     : ProtocolVersion; // should be part of aeAlg
+  aeAlg  : aeAlg;           // the authenticated-encryption algorithms
+  // epoch-specific parameters
+  csrConn: csrands;         // the client-server random of the connection
+  ext: negotiatedExtensions; // the extensions negotiated for the current session
+  writer : Role             // the role of the writer
+  }
+
+function val Swap: id -> id
+definition !i:id. Swap(i)=
+  { msId    = i.msId;
+    kdfAlg  = i.kdfAlg;
+    pv      = i.pv;
+    aeAlg   = i.aeAlg;
+    csrConn = i.csrConn;
+    ext     = i.ext;
+    writer  = DualRole(i.writer) }
+
+assume !x,y. x = DualRole(y) => y = DualRole(x)
+
+// The following asks fail, because the fields of the record are not adequately restricted.
+// Asks not strictly needed as we use indices in consistent order.
+//ask !x,y. x = Swap(y) => y = Swap(x)
+//ask !i,i'.  Swap(i)=Swap(i') => i=i'
+//ask !i:id. Swap(Swap(i)) = i
+
+function val SiId: SessionInfo * Role -> id
+definition !si:SessionInfo,writer:Role. SiId(si,writer) =
+  { msId    = MsI(si);
+    kdfAlg  = KdfAlg(si);
+    pv      = si.protocol_version; // should be part of aeAlg
+    aeAlg   = SIaeAlg(si);
+    csrConn = CSRands(si);
+    ext     = si.extensions;
+    writer  = writer;  }
+
+// accessing concrete algoritms out of the abstract index.
+
+function val MacAlg: id -> macAlg
+definition !id. MacAlg(id)=AEMacAlg(id.aeAlg)
+val macAlg_of_id: i:id -> m:macAlg { MacAlg(i)=m }
+
+function val EncAlg: id -> encAlg
+definition !id. EncAlg(id)=AEEncAlg(id.aeAlg)
+val encAlg_of_id: i:id -> e:encAlg { EncAlg(i)=e }
+
+function val PvOfId: i:id -> pv:ProtocolVersion
+definition !i. PvOfId(i)=i.pv
+val pv_of_id: i:id -> pv:ProtocolVersion {pv=PvOfId(i)}
+
+val kdfAlg_of_id: id -> kdfAlg
+
+// -----------------------------------------------------------------------
+// Safety of key derivation depends on matching algorithms (see PRF)
+
+type event = // produced by PRF, used once the handshake is Finished
+  | KeyCommit of    csrands * ProtocolVersion * aeAlg * negotiatedExtensions
+  | KeyGenClient of csrands * ProtocolVersion * aeAlg * negotiatedExtensions
+  | SentCCS of Role * SessionInfo
+  | SentCCSAbbr of Role * abbrInfo
+
+// These two injectivity properties follow from the affine usage of keyCommit and keyGenClient
+theorem !csr,pv0,ae0,ext0,pv1,ae1,ext1.
+  (KeyCommit(csr,pv0,ae0,ext0) /\ KeyCommit(csr,pv1,ae1,ext1)) => (pv0=pv1 /\ ae0 = ae1 /\ ext0=ext1)
+theorem !csr,pv0,ae0,ext0,pv1,ae1,ext1.
+  (KeyGenClient(csr,pv0,ae0,ext0) /\ KeyGenClient(csr,pv1,ae1,ext1)) => (pv0=pv1 /\ ae0 = ae1 /\ ext0=ext1)
+
+// ``the honest participants of handshake with this csr use matching aeAlgs''
+predicate Match of id
+definition !i:id. Match(i) <=> KeyCommit(i.csrConn,i.pv,i.aeAlg,i.ext) /\ KeyGenClient(i.csrConn,i.pv,i.aeAlg,i.ext)
+
+// This index is safe for MS-based key derivation
+predicate SafeKDF of id
+definition !i:id. SafeKDF(i) <=> HonestMS(i.msId) /\ StrongKDF(i.kdfAlg) /\ Match(i)
+val safeKDF: (i:id) -> b:bool { b=true <=> SafeKDF(i) }
+
+// Needed for typechecking of PRF
+ask !i1,i2. i2 = Swap(i1) /\ not(SafeKDF(i1)) => not(SafeKDF(i2))
+
+// HonestMS(msi) conditions both idealizations in PRF.
+ask !si:SessionInfo. not HonestMS(MsI(si)) => not SafeVD(si)
+ask !i:id. not HonestMS(i.msId) => not SafeKDF(i)
+
+// -----------------------------------------------------------------------
+// The two main safety properties for the record layer
+
+// ``The MAC algorithm of id is INT-CMA.''
+predicate StrongAuthId of id
+definition !id:id. StrongAuthId(id) <=> INT_CMA_M(MacAlg(id))
+
+// ``The AE algorithms are CPA and INT-CTXT''
+predicate StrongAEId of id
+definition !id:id. StrongAEId(id) <=> StrongAEAlg(id.pv,id.aeAlg)
+
+// ``We are idealizing integrity/confidentiality for this id''
+predicate AuthId of id
+predicate SafeId of id
+val authId: (i:id) -> b:bool {b = true <=> AuthId(i)}
+val safeId : (i:id) -> b:bool {b = true <=> SafeId(i)}
+
+definition !i. AuthId(i) <=> SafeKDF(i) /\ StrongAuthId(i)
+definition !i. SafeId(i) <=> SafeKDF(i) /\ StrongAEId(i)
+
+ask !i.     SafeId(i) => AuthId(i)
+ask !i,mac. i.aeAlg  = MACOnly(mac) => not SafeId(i)
+
+ask !i:id. AuthId(i) => Match(i) // sanity check; just by definition
+ask !i:id. AuthId(i) => SafeKDF(i)
+ask !i:id. AuthId(i) => StrongAuthId(i)
+ask !i:id. AuthId(i) => INT_CMA_M(MacAlg(i))
+// ask !si,r:Role. StrongAuthSI(si) => StrongAuthId(SiId(si,r))
+// ask !i:id,e,m. StrongAuthId(i) => INT_CMA_M(MacAlg(i))
+
+// -------------------------------------------------------------------------
+// Re-indexing from epochs to ids
+
+val noId: i:id { not AuthId(i) }
+
+theorem not AuthId(noId)
+
+function val Id: epoch -> id
+val mk_id: s:epoch -> i:id {i=Id(s)}
+definition !e:epoch. IsInitEpoch(e) => Id(e) = noId
+definition !e:epoch. IsSuccEpoch(e) => Id(e) =
+  { msId    = MsI(EpochSI(e));
+    kdfAlg  = KdfAlg(EpochSI(e));
+    pv      = EpochSI(e).protocol_version; // should be part of aeAlg
+    aeAlg   = SIaeAlg(EpochSI(e));
+    csrConn = EpochCSRands(e);
+    ext	= EpochSI(e).extensions; // should be part of aeAlg
+    writer  = EpochWriter(e);  }
+
+ask !e. IsInitEpoch(e) => Id(e) = noId
+ask !e. IsInitEpoch(e) => not AuthId(Id(e))
+
+val unAuthIdInv: i:id{not AuthId(i)} -> s:epoch {Id(s) = i}
+
+// -------------------------------------------------------------------------
+// Global safety properties
+
+// Safety for handshakes depends on having an 'idealized' mastersecret,
+// and performing both strong session key generation & finished message verification
+
+predicate SafeHS_SI of SessionInfo // Safe handshake for this sessioninfo
+definition !si. SafeHS_SI(si) <=> HonestPMS(si.pmsId) /\ ( ?r. Match(SiId(si,r)) ) /\ StrongHS(si)
+val safeHS_SI: (si:SessionInfo) -> b:bool { b=true <=> SafeHS_SI(si)}
+
+// Safety for epochs relies only on SessionInfo.
+// This would change if we introduced a finer model of compromise
+// e.g. if we allowed the attacker to compromise specific epochs
+
+predicate SafeHS of epoch          // Safe handshake for this epoch
+definition !id. SafeHS(id) <=> SafeHS_SI(EpochSI(id))
+val safeHS: (e:epoch) -> b:bool { b = true <=> SafeHS(e)}
+
+// Predicates specifying the security of TLS connections
+
+predicate Open of epoch // ``The handshake is complete''
+definition !e. Open(e) <=> (?r. (r = Client \/ r = Server) /\
+                           ((IsFullEpoch(e) /\ SentCCS(r,EpochSI(e)) /\ SentCCS(DualRole(r),EpochSI(e))) \/
+                            (IsAbbrEpoch(e) /\ SentCCSAbbr(r,EpochAI(e)) /\ SentCCSAbbr(DualRole(r),EpochAI(e)))))
+
+predicate OpenState of epoch
+definition !e.
+  OpenState(e) <=> (?r. (r = Client \/ r = Server) /\
+                   ((IsFullEpoch(e) /\ SentCCS(r,EpochSI(e)) /\ (SafeVD(EpochSI(e)) => SentCCS(DualRole(r),EpochSI(e)))) \/
+                    (IsAbbrEpoch(e) /\ SentCCSAbbr(r,EpochAI(e)) /\ (SafeVD(EpochSI(e)) => SentCCSAbbr(DualRole(r),EpochAI(e))))))
+
+predicate Safe   of epoch        // The epoch parameters yield privacy & integrity
+definition !e. Safe(e) <=> (SafeId(Id(e)) /\ OpenState(e))
+val safe:   (e:epoch) -> b:bool { b = true <=> Safe(e)}
+
+predicate Auth   of epoch        // The epoch parameters yield integrity (not necessarily privacy)
+definition !e. Auth(e) <=> (AuthId(Id(e)) /\ OpenState(e))
+val auth:    (e:epoch) -> b:bool {b = true <=> Auth(e)}
+
+ask !e. Safe(e) => Auth(e)
+ask !e. not(Auth(e)) => not(Safe(e))
+
+// so that TLS can exchange any traffic on the initial null connection
+ask !e. IsInitEpoch(e) => not Auth(e)
+
+ask !e. OpenState(e) => (AuthId(Id(e)) => Auth(e))
+ask !e. OpenState(e) => (SafeId(Id(e)) => Safe(e))
+ask !e. Auth(e) => OpenState(e)
+
+private theorem !r,r',e,e'. SentCCS(r,EpochSI(e)) /\
+	                    SentCCS(r',EpochSI(e')) /\
+  			    Id(e) = Id(e') => e = e'
+theorem !e,e'. OpenState(e) /\ OpenState(e') /\ Id(e) = Id(e') => e = e'
+
+val sinfo_to_string: SessionInfo -> string
+
+// those could move to TLSConstants
+private val max_TLSPlaintext_fragment_length: nat
+private val max_TLSCompressed_fragment_length: nat
+val max_TLSCipher_fragment_length: nat
+val fragmentLength: nat

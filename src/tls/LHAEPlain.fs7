@@ -1,0 +1,93 @@
+(*
+ * Copyright 2015 INRIA and Microsoft Corporation
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *)
+
+module LHAEPlain
+open Bytes
+open Error
+open TLSError
+open TLSConstants
+open TLSInfo
+open Range
+
+//------------------------------------------------------------------------------------------------------
+// `Plain' interface towards LHAE
+//------------------------------------------------------------------------------------------------------
+
+// We define payloads and additional data from those of StatefulPlain,
+// adding an 8-byte sequence number to its additional data.
+
+type (;i:id) adata = (b:bytes){Length(b) = 8 + StatefulPlain.ADLength(i)}
+
+function val MakeAD:  i:id * (;i)StatefulPlain.history * cbytes -> cbytes
+private definition !i,h,ad. MakeAD(i,h,ad) = B(IntBytes(8,StatefulPlain.SeqN(i,h))) @| ad
+function val ParseAD: i:id * cbytes -> cbytes
+private definition !i,b,ad. BLength(b) = 8 => ParseAD(i,b@|ad) = ad
+function val SeqN: i:id * cbytes -> nat
+private definition !i,sn,ad. SeqN(i,B(IntBytes(8,sn))@|ad) = sn
+
+ask !i,h,ad. ParseAD(i,MakeAD(i,h,ad)) = ad
+
+val makeAD:  i:id -> h:(;i)StatefulPlain.history -> ad:(;i)StatefulPlain.adata -> b:(;i)adata{B(b)=MakeAD(i,h,B(ad))}
+val parseAD: i:id -> b:(;i)adata -> (ad:(;i)StatefulPlain.adata){B(ad) = ParseAD(i,B(b))}
+
+private type (;i:id,ad:cbytes,r:range)fragment = {contents: (;i,ParseAD(i,ad),r)StatefulPlain.fragment}
+
+function val Payload: i:id * ad:cbytes * r:range * (;i,ad,r)fragment -> cbytes
+private definition !i,ad,r,f.
+	Payload(i,ad,r,f) = StatefulPlain.Payload(i,ParseAD(i,ad),r,f.contents)
+
+predicate LHAESent of i:id * ad:cbytes * r:range * (;i,ad,r)fragment
+
+type (;i:id,ad:(;i)adata,r:range) plain = f:(;i,B(ad),r)fragment{ AuthId(i) => LHAESent(i,B(ad),r,f) }
+
+val plain: i:id{not AuthId(i)} -> ad:(;i)adata -> r:range -> b:(;r)rbytes -> p:(;i,ad,r) plain {B(b) = Payload(i,B(ad),r,p)}
+val repr:  i:id{not SafeId(i)} -> ad:(;i)adata -> r:range -> p:(;i,ad,r) plain -> b:(;r)rbytes {B(b) = Payload(i,B(ad),r,p)}
+private val reprFragment:
+           i:id{not SafeId(i)} -> ad:(;i)adata -> r:range -> f:(;i,B(ad),r) fragment -> b:(;r)rbytes {B(b) = Payload(i,B(ad),r,f)}
+
+val widen: i:id -> ad:(;i)adata -> r:range ->
+  f:(;i,ad,r)plain ->
+  f':(;i,ad,RangeClass(i,r))plain{
+    Payload(i,B(ad),r,f) = Payload(i,B(ad),RangeClass(i,r),f')}
+
+private definition !i,lad,r,f.
+  LHAESent(i,lad,r,f) <=>
+  (?had,sn,ph. had = ParseAD(i,lad) /\
+               sn = SeqN(i,lad) /\
+               StatefulPlain.Sent(i,had,(sn,ph),r,f.contents))
+
+val makeExtPad:  id:id -> ad:(;id)adata -> r:range -> p:(;id,ad,r)plain -> p':(;id,ad,r)plain{p=p'}
+val parseExtPad: id:id -> ad:(;id)adata -> r:range -> p:(;id,ad,r)plain -> res:((p':(;id,ad,r)plain{p=p'}) Result){?p. res = Correct(p)}
+
+(* These coercions are used only in StatefulLHAE.fs;
+   they are not part of the "plain" interface to LHAE. *)
+
+function val StAEToLHAE: 'a -> 'b // StatefulPlain.plain -> plain
+private definition !p. StAEToLHAE(p) = {contents = p}
+
+val StatefulPlainToLHAEPlain: i:id -> h:(;i)StatefulPlain.history ->
+  ad:(;i)StatefulPlain.adata ->
+  ad':(;i)adata{B(ad') = MakeAD(i,h,B(ad))} ->
+  r:range ->
+  f:(;i,ad,h,r)StatefulPlain.plain ->
+  p:(;i,ad',r)plain{p = StAEToLHAE(f)}
+
+val LHAEPlainToStatefulPlain: i:id -> h:(;i)StatefulPlain.history ->
+  ad:(;i)StatefulPlain.adata ->
+  ad':(;i)adata{B(ad') = MakeAD(i,h,B(ad))} ->
+  r:range ->
+  p:(;i,ad',r)plain ->
+  f:(;i,ad,h,r)StatefulPlain.plain{p = StAEToLHAE(f)}

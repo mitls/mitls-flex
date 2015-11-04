@@ -1,0 +1,76 @@
+(*
+ * Copyright 2015 INRIA and Microsoft Corporation
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *)
+
+module TLSExtensions
+
+(* Formatting and parsing support for the protocol extensions
+   exchanged in the first two messages of the handshake *)
+
+open Bytes
+open Error
+open TLSError
+open TLSConstants
+open TLSInfo
+
+// Following types used only in Handshake
+type clientExtension
+type serverExtension
+
+// Client side
+val clientExtensionsBytes: clientExtension list -> bytes
+val prepareClientExtensions: config -> ConnectionInfo -> cVerifyData -> clientExtension list
+val parseServerExtensions: bytes -> (serverExtension list) Result
+val negotiateClientExtensions: clientExtension list -> serverExtension list -> bool -> cipherSuite -> negotiatedExtensions Result
+
+// Server side
+val serverExtensionsBytes: serverExtension list -> bytes
+val negotiateServerExtensions: clientExtension list -> config -> cipherSuite -> (cVerifyData * sVerifyData) -> bool -> (serverExtension list * negotiatedExtensions)
+val parseClientExtensions: bytes -> cipherSuites -> (clientExtension list) Result
+
+// ------------------------------------------------------
+// The rest is extension-specific
+
+// Secure Renegotiation Information
+
+val checkClientRenegotiationInfoExtension: config -> clientExtension list -> cVerifyData -> bool
+val checkServerRenegotiationInfoExtension: config -> serverExtension list -> cVerifyData -> sVerifyData -> bool
+
+// Extended master secret
+val hasExtendedMS: negotiatedExtensions -> bool
+
+// Extended padding
+predicate HasExtendedPadding of id
+val hasExtendedPadding: id:id -> b:bool{b = true <=> HasExtendedPadding(id)}
+
+// Signature and Hash Algorithms
+
+function val SigHashAlgBytes: 'a  -> cbytes
+private definition !s,h. SigHashAlgBytes((s,h)) = HashAlgBytes(s) @| SigAlgBytes(h)
+
+val sigHashAlgBytes: a:Sig.alg -> b:bytes{B(b)=SigHashAlgBytes(a)}
+val parseSigHashAlg: b:bytes -> (a:Sig.alg{B(b)=SigHashAlgBytes(a)}) Result
+
+function val SigHashAlgsBytes: Sig.alg list -> cbytes
+val sigHashAlgListBytes: al:Sig.alg list -> b:bytes{B(b)=SigHashAlgsBytes(al)}
+val parseSigHashAlgList: b:bytes -> (al:Sig.alg list{B(b)=SigHashAlgsBytes(al)}) Result
+
+function val DefaultSigHashAlgs: ProtocolVersion * cipherSuite -> Sig.alg list
+val default_sigHashAlg: pv:ProtocolVersion -> cs:cipherSuite -> al:Sig.alg list{al=DefaultSigHashAlgs(pv,cs)}
+
+val sigHashAlg_contains: Sig.alg list -> Sig.alg -> bool
+val cert_type_list_to_SigHashAlg: certType list -> ProtocolVersion -> Sig.alg list
+val cert_type_list_to_SigAlg: certType list -> sigAlg list
+val sigHashAlg_bySigList: Sig.alg list -> sigAlg list -> Sig.alg list

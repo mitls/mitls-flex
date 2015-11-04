@@ -1,0 +1,108 @@
+(*
+ * Copyright 2015 INRIA and Microsoft Corporation
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *)
+
+module PMS
+
+(* pre-master-secrets, for RSA-based and DH-based key exchanges *)
+(* (this used to be part of KEF) *)
+
+open Bytes
+open TLSConstants
+
+(** RSA ciphersuites **)
+
+// ``These parameters can encrypt HonestRSAPMSs.''
+
+predicate SafeRSA of RSAKey.pk * ProtocolVersion
+definition !pk,cv. SafeRSA(pk,cv) <=> RSAKey.Honest(pk) /\ RSAKey.Strong(cv)
+
+// In this file RSA refers to any crypto materials used for the RSA KEX.
+
+// representation of PMS as RSA plaintexts.
+type rsarepr = (;48)lbytes
+
+//#begin-abstractionRSA
+(* private , only shared with KEF *)
+type rsaseed = {seed:rsarepr}
+
+// We have two layers of abstraction:
+// - rsaseed, treated abstractly almost everywhere in this module & KEF
+//   we could use a separate agile PRF module & assumption
+// - rsapms, treated abstractly outside this module & KEF
+//   so that we can control their usage for the RSA-PMS assumption.
+
+type (;pk:RSAKey.pk, cv:ProtocolVersion) rsapms =
+   | IdealRSAPMS    of s:rsaseed {SafeRSA(pk,cv)} // used only ideally & for abstract pms values
+   | ConcreteRSAPMS of rsarepr
+// pattern matching is used in this module & in KEF only for specifying ideal code
+// so we also define ideal predicate & test for the module users:
+predicate HonestRSAPMS of pk:RSAKey.pk * cv:ProtocolVersion * (;pk,cv)rsapms
+private definition !pk,cv,pms.
+  HonestRSAPMS(pk,cv,pms) <=> (SafeRSA(pk,cv) /\ ?s. pms = IdealRSAPMS(s))
+
+ask !pk,cv,s. not(HonestRSAPMS(pk,cv,ConcreteRSAPMS(s)))
+
+val honestRSAPMS: pk:RSAKey.pk -> cv:ProtocolVersion -> pms: (;pk,cv) rsapms ->
+  b:bool { b=true <=> HonestRSAPMS(pk,cv,pms) }
+
+private ask !pk,cv,pms.
+  HonestRSAPMS(pk,cv,pms) => SafeRSA(pk,cv)
+
+val genRSA: pk:RSAKey.pk -> cv:ProtocolVersion ->
+  pms:(;pk,cv)rsapms { SafeRSA(pk,cv) <=> HonestRSAPMS(pk,cv,pms) }
+
+val coerceRSA: pk:RSAKey.pk -> cv:ProtocolVersion -> rsarepr -> (;pk,cv)rsapms
+// unrestricted; we actually always get a ConcreteRSAPMS
+
+val leakRSA:
+  pk:RSAKey.pk -> cv:ProtocolVersion ->
+  pms:(;pk,cv)rsapms {not HonestRSAPMS(pk,cv,pms)} -> rsarepr
+// used for concrete RSA encryption
+//#end-abstractionRSA
+
+open DHGroup
+open CoreKeys
+
+// The DH parameters, generator, and gx and gy values yield a good dhpms
+predicate SafeDH of p:bytes * g:bytes * (;p,g)DHGroup.elt * (;p,g)DHGroup.elt
+//#begin-abstractionDH
+
+type dhrepr = bytes
+
+(* private , only shared with KEF *)
+type dhseed = {seed:dhrepr} // treated abstractly almost everywhere in this file
+
+// - dhpms, treated abstractly outside this module & KEF
+//   so that we can control their usage for the DH-PMS assumption.
+type (;p:bytes, g:bytes, gx:(;p,g) elt, gy:(;p,g) elt) dhpms =
+   | IdealDHPMS    of dhseed
+   | ConcreteDHPMS of dhrepr
+
+predicate HonestDHPMS of p:bytes * g:bytes * gx:(;p,g) elt * gy:(;p,g) elt * (;p,g,gx,gy) dhpms
+
+private definition !p,g,gx,gy,pms. HonestDHPMS(p,g,gx,gy,pms) <=> ?s. pms = IdealDHPMS(s)
+
+val honestDHPMS: p:bytes -> g:bytes -> gx:(;p,g)elt -> gy:(;p,g)elt -> pms: (;p,g,gx,gy) dhpms
+                     -> b:bool { b=true <=> HonestDHPMS(p,g,gx,gy,pms) }
+
+val sampleDH: dhp:dhparams -> gx:(;dhp.dhp,dhp.dhg)elt -> gy:(;dhp.dhp,dhp.dhg)elt ->  pms:(;dhp.dhp,dhp.dhg,gx,gy) dhpms{HonestDHPMS(dhp.dhp,dhp.dhg,gx,gy,pms)}
+val coerceDH: dhp:dhparams -> gx:(;dhp.dhp,dhp.dhg)elt -> gy:(;dhp.dhp,dhp.dhg)elt {not SafeDH(dhp.dhp,dhp.dhg,gx,gy)}-> (;dhp.dhp,dhp.dhg)elt -> (;dhp.dhp,dhp.dhg,gx,gy) dhpms
+//#end-abstractionDH
+
+// multiplexing the PMS representations
+type pms =
+  | RSAPMS of pk:RSAKey.pk * cv:ProtocolVersion * (;pk,cv)rsapms
+  | DHPMS of p:bytes * g:bytes * gx:(;p,g) elt * gy:(;p,g) elt * (;p,g,gx,gy) dhpms

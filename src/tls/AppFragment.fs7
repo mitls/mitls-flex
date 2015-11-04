@@ -1,0 +1,97 @@
+(*
+ * Copyright 2015 INRIA and Microsoft Corporation
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *)
+
+module AppFragment
+open Bytes
+open TLSInfo
+open Range
+open DataStream
+open Error
+open TLSError
+
+(* Application fragments are defined from DataStream as triples (e,s,d)
+   where e is an epoch, s is a stream, and d is a delta indexed by them.
+   We also set up predicates & functions to re-index with/without e & s. *)
+
+// an event recording every honest fragment creation,
+// assumed in function fragment, and used to define Sent.
+predicate DeltaFragment of e:epoch * s:(;e) stream * r:range * (;e,s,r)delta
+
+private type (;i:id,r:range) preFragment =
+  {frag: (e:epoch * s:(;e)stream * d:(;e,s,r) delta{ i = Id(e) /\
+              (Auth(e) => DeltaFragment(e,s,r,d))}) }
+
+predicate IsFragment of i:id * r:range * (;i,r)preFragment
+
+private definition !i,r,f. IsFragment(i,r,f) <=> (?e,s,d. f.frag = (e,s,d) /\ i = Id(e))
+
+type (;i:id,r:range) fragment = f:(;i,r)preFragment{IsFragment(i,r,f)}
+
+predicate Sent of e:epoch * (;e) stream * r:range * (;Id(e),r)fragment
+(* The following definition guarantees that for authentic appdata fragments (Sent)
+   the epoch and stream within the fragment is consistent with the Sent predicate *)
+
+// We authenticate contents but not ranges
+private definition !e,s,r,f. Sent(e,s,r,f) <=>
+        (?d,r. f.frag = (e,s,d) /\ DeltaFragment(e,s,r,d))
+
+ask !e,s,r,f. Sent(e,s,r,f) => (?d. f.frag = (e,s,d))
+
+type (;e:epoch,s:(;e)stream,r:range) plain = f:(;Id(e),r) fragment{Auth(e) => Sent(e,s,r,f)}
+
+function val Payload: i:id * r:range * (;i,r)fragment -> cbytes
+private definition !e,r,s,d. Payload(Id(e),r,{frag = (e,s,d)}) = DataStream.Payload(e,s,r,d)
+
+function val Extend: epoch * 'b * range * 'd -> 'e
+private definition !e,s,r,f,e',s',d.
+  f.frag = (e',s',d) =>
+  Extend(e,s,r,f) = DataStream.ExtendStreamDelta(e,s,r,d)
+
+ask !e,r,f,s,d.
+     IsFragment(Id(e),r,f) /\ Payload(Id(e),r,f) = DataStream.Payload(e,s,r,d)
+  => Extend(e,s,r,f) = DataStream.ExtendStreamDelta(e,s,r,d)
+
+val fragment: e:epoch -> s:(;e) stream -> r:range ->
+  d:(;e,s,r) delta ->
+  f:(;Id(e),r) fragment * s':(;e) stream
+  {Sent(e,s,r,f) /\ s' = Extend(e,s,r,f) /\ Payload(Id(e),r,f) = DataStream.Payload(e,s,r,d)}
+
+val check: e:epoch -> e':epoch { e = e'} -> unit
+
+val delta: e:epoch -> s:(;e) stream -> r:range ->
+  f:(;Id(e),r) fragment{( Auth(e) => Sent(e,s,r,f) ) /\ TLSInfo.OpenState(e) } ->
+  d:(;e,s,r) delta * s':(;e) stream
+  {s' = Extend(e,s,r,f)  /\ Payload(Id(e),r,f) = DataStream.Payload(e,s,r,d)}
+
+// conditional fragment abstraction
+
+val plain: i:id{not AuthId(i)} -> r:range ->
+  b:(;r) rbytes -> f:(;i,r) fragment{B(b) = Payload(i,r,f)}
+
+val repr:  i:id{not SafeId(i)} -> r:range ->
+  f:(;i,r) fragment -> b:(;r) rbytes{B(b) = Payload(i,r,f)}
+
+val makeExtPad:  i:id -> r:range -> f:(;i,r)fragment -> f':(;i,r)fragment{f'=f}
+val parseExtPad: i:id -> r:range -> f:(;i,r)fragment -> res:((f':(;i,r)fragment{f'=f}) Result){?f. res = Correct(f)}
+
+// We use this function for ideal decryption by table lookup,
+// as the range after decryption is usually wider than the one used for encryption.
+// (Note that by design the encryption ranges are *not* authenticated).
+
+val widen: i:id -> r0:range -> f0:(;i,r0)fragment ->
+    f1:(;i,RangeClass(i,r0))fragment{
+    Payload(i,r0,f0) = Payload(i,RangeClass(i,r0),f1) /\
+    !e,s. Sent(e,s,r0,f0) => Sent(e,s,RangeClass(i,r0),f1)}

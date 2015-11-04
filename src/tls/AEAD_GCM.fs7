@@ -1,0 +1,75 @@
+(*
+ * Copyright 2015 INRIA and Microsoft Corporation
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *)
+
+module AEAD_GCM
+
+(* Implements AES-GCM as a concrete instance of "advanced" LHAE;
+   we could similarly specify AES-CCM.
+   used by LHAE, parameterized by LHAEPlain. *)
+
+open Bytes
+open Range
+open TLSInfo
+open Error
+open TLSError
+open TLSConstants
+
+type cipher = b:bytes{Length(b) <= max_TLSCipher_fragment_length}
+private type (;i:id)key = {kb:bytes}
+private type (;i:id)iv = {ivb:bytes}
+type counter = nat
+
+private type (;i:id,rw:rw)state = {key:(;i)key;
+              iv:(;i)iv;
+              counter:counter}
+
+type (;i:id)encryptor = (;i,Writer)state
+type (;i:id)decryptor = (;i,Reader)state
+
+function val NextEncryptor: i:id * (;i)encryptor -> 'a //(;i)encryptor
+private definition !i,k,iv,c. NextEncryptor(i,{key=k;iv=iv;counter=c}) = {key=k;iv=iv;counter=c+1}
+
+val GEN: i:id -> (;i)encryptor * (;i)decryptor
+val COERCE: i:id{not AuthId(i)} -> rw:rw -> bytes -> bytes -> (;i,rw)state
+val LEAK:   i:id{not AuthId(i)} -> rw:rw -> (;i,rw)state -> bytes
+
+predicate val ENCrypted: i:id * ad:(;i)LHAEPlain.adata * cipher * 'a -> bool
+
+type entry =
+  (i:id * ad:(;i)LHAEPlain.adata * c:cipher * r:range * p:(;i,ad,r)LHAEPlain.plain)
+  { ENCrypted(i,ad,c,p) }
+
+private val log: entry list ref
+private val cfind: i:id -> c:cipher -> xs: entry list ->
+  (a:(;i)LHAEPlain.adata * r:range * (;i,a,r) LHAEPlain.plain)
+
+private val ENC_int: i:id -> e:(;i)encryptor -> ad:(;i)LHAEPlain.adata -> r:range -> bytes ->
+  ( (e':(;i)encryptor{e'=NextEncryptor(i,e)}) *
+    (c:cipher )) //{ Length(c) = TargetLength(i,r)}) )
+
+val ENC: i:id -> e:(;i)encryptor -> ad:(;i)LHAEPlain.adata -> r:range -> p:(;i,ad,r)LHAEPlain.plain ->
+  ( (e':(;i)encryptor{e'=NextEncryptor(i,e)}) *
+    (c:cipher{(SafeId(i) => ENCrypted(i,ad,c,p)) /\ Length(c) = TargetLength(i,r)}) )
+
+private val DEC_int: i:id -> (;i)decryptor -> ad:(;i)LHAEPlain.adata -> r:range -> c:cipher ->
+  res: (((;i)decryptor * p:(;i,ad,r)LHAEPlain.plain) Result)
+
+val DEC: i:id -> (;i)decryptor -> ad:(;i)LHAEPlain.adata -> r:range -> c:cipher ->
+  res: (((;i)decryptor * p:(;i,ad,r)LHAEPlain.plain) Result)
+	{SafeId(i) =>
+		( (!d,p. res = Correct((d,p)) => ENCrypted(i,ad,c,p)) /\
+		  (?p. ENCrypted(i,ad,c,p) => ?d. res = Correct((d,p)))
+		)}

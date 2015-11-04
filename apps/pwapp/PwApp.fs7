@@ -1,0 +1,49 @@
+(*
+ * Copyright 2015 INRIA and Microsoft Corporation
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *)
+
+module PwApp
+
+open Cert
+open Dispatch
+open TLSInfo
+open PwToken
+
+type username = PwToken.username
+
+predicate ClientAuthenticated   of username * token
+predicate AuthenticatedByServer of SessionInfo  * username
+
+function val CN : Cert.cert list -> string
+
+val request :
+      servname : string
+   -> username : string
+   -> token    : token{RegisteredToken(UTK(username, token))}
+   -> (c:Connection{
+		CN(EpochSI(CnInfo(c).id_in).serverID) = username /\
+		( StrongAuth(CnInfo(c).id_in) /\
+		  ( RSAKey.Honest(RSAPKCert(EpochSI(CnInfo(c).id_in).serverID)) \/
+			Sig.Honest(SigPKCert(EpochSI(CnInfo(c).id_in).serverID))
+		  ) =>
+			AuthenticatedByServer(EpochSI(CnInfo(c).id_in), username)
+		)
+      }) option
+
+val response : string -> (uc:(username * Connection){
+  !c, u. (u, c) = uc =>
+    ?token. StrongAuth(CnInfo(c).id_in)
+	          => ClientAuthenticated(u, token) /\ GoodToken(u, token)
+}) option

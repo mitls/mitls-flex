@@ -1,0 +1,211 @@
+(*
+ * Copyright 2015 INRIA and Microsoft Corporation
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *)
+
+module Encode
+
+(* The "plain" file for CPA encryption (module ENC) *)
+(* provided by LHAE, implementing LHAEPlain @| MAC @| padding when using MtE *)
+
+open Bytes
+open Error
+open TLSError
+open TLSInfo
+open TLSConstants
+open TLSExtensions
+open Range
+
+//------------------------------------------------------------------------------------------------------
+// Interface towards ENC (abstract)
+//------------------------------------------------------------------------------------------------------
+
+// the result of decrypting & decoding, with an abstract type for secrecy
+private type (;e:id,ad:(;e)LHAEPlain.adata,rg:range) plain =
+	{ plain: (;e,ad,rg)LHAEPlain.plain;
+	  tag  : (;e)MAC.tag;
+	  ok   : b:bool { EncAlg(e) = Stream_RC4_128 => b = true }
+	  (* true iff decoding succeeded; always true with RC4. *) }
+
+val widen: i:id -> ad:(;i)LHAEPlain.adata -> r:range ->
+  f :(;i,ad,r)plain ->
+  f':(;i,ad,CipherRangeClass(i,TargetLength(i,r))) plain
+    //{Payload(i,B(ad),r,f) = Payload(i,B(ad),RangeClass(i,r),f')}
+
+function val PlainLength: id * nat -> nat
+definition !e,tlen.
+  tlen >= IVSize(e) =>
+  PlainLength(e,tlen) = tlen - IVSize(e)
+
+ask !e,tlen,mac.
+     ( tlen >= 0 /\ e.aeAlg = MACOnly(mac) ) => PlainLength(e,tlen) = tlen
+
+ask !e,tlen,mac.
+     ( tlen >= 0 /\ e.aeAlg = MtE(Stream_RC4_128,mac) )  => PlainLength(e,tlen) = tlen
+
+//------------------------------------------------------------------------------------------------------
+// Interface towards LHAE
+//------------------------------------------------------------------------------------------------------
+
+private val zeros: r:range -> (;r)rbytes
+
+val payload: e:id -> r:range -> ad:(;e)LHAEPlain.adata ->
+  f:(;e,ad,r)LHAEPlain.plain ->
+  b:(;r) rbytes{ SafeId(e) \/ B(b) = LHAEPlain.Payload(e,B(ad),r,f) }
+
+// the MACed bytes, i.e. ad @| 2-byte length of payload @| payload
+
+function val MACPlain : 'a * 'b * 'c * 'd -> 'e
+private definition !e,r,ad,f. MACPlain(e,r,ad,f) = ad @| VLBytes(2,LHAEPlain.Payload(e,ad,r,f))
+val macPlain_bytes: e:id -> r:range ->
+  ad:(;e)LHAEPlain.adata -> b:(;r)rbytes ->
+  b':bytes{B(b') = B(ad) @| VLBytes(2,B(b))}
+val macPlain: e:id -> r:range ->
+  ad:(;e)LHAEPlain.adata ->
+  f:(;e,ad,r)LHAEPlain.plain -> b:bytes{ SafeId(e) \/ B(b) = MACPlain(e,r,B(ad),f) }
+
+private ask !i,r,ad,b,p.
+	B(ad) @| VLBytes(2,B(b)) = B(ad) @| VLBytes(2,LHAEPlain.Payload(i,B(ad),r,p)) =>
+	B(b) = LHAEPlain.Payload(i,B(ad),r,p)
+
+predicate val Decoded: 'e * 'a * 'b -> bool
+
+// We define a MACOnly log exclusively for MACOnly ciphersuites
+// that behaves like a bijection with what we learn from the MAC.Msg predicate. Hence,
+// - Items are inserted only for honest macs, that is when AuthId && MAC.Msg hold
+// - Items can be retrieved only for verified macs, that is when AuthId holds, and when we have learnt
+//   sufficient information from the MAC.Msg predicate -- namely that an LHAEPlain.plain with the expected payload exists.
+type maconly_entry =
+	(i:id * ad:(;i)LHAEPlain.adata *
+	 rg:range * tlen:nat *
+	 payload:bytes * text:bytes *
+	 p:(;i,ad,rg)LHAEPlain.plain * (;i)MAC.tag)
+	{AuthId(i) /\ (?mac. i.aeAlg = MACOnly(mac)) /\
+	 MAC.Msg(i,text) /\ B(text) = MACPlain(i,rg,B(ad),p) /\
+	 B(payload) = LHAEPlain.Payload(i,B(ad),rg,p) /\
+	 tlen <= max_TLSCipher_fragment_length /\ tlen = TargetLength(i,rg)}
+private val maconly_log: maconly_entry list ref
+private val maconly_mem:
+	i:id{AuthId(i) /\ (?mac. i.aeAlg = MACOnly(mac))} ->
+	ad:(;i)LHAEPlain.adata -> tlen:nat{tlen <= max_TLSCipher_fragment_length} ->
+	pl:bytes -> t:bytes{B(t) = B(ad) @| VLBytes(2,B(pl)) /\
+		(?rg,p. B(pl) = LHAEPlain.Payload(i,B(ad),rg,p) )} ->
+	(;i)MAC.tag -> xs:maconly_entry list ->
+	((rg:range * p:(;i,ad,rg)LHAEPlain.plain){tlen = TargetLength(i,rg) /\ B(pl) = LHAEPlain.Payload(i,B(ad),rg,p)}) option
+
+val mac: e:id -> k:(;e) MAC.key ->
+  ad:(;e)LHAEPlain.adata -> rg:range ->
+  p:(;e,ad,rg)LHAEPlain.plain ->
+  (;e,ad,rg) plain
+
+val verify_MACOnly: e:id{not SafeId(e) /\ ?mac. e.aeAlg = MACOnly(mac)} -> k:(;e) MAC.key ->
+  ad:(;e)LHAEPlain.adata ->
+  rg:range ->
+  tlen:nat{tlen <= max_TLSCipher_fragment_length /\ rg = CipherRangeClass(e,tlen)} ->
+  b:(;rg)rbytes -> t:(;e)MAC.tag ->
+  ((rg':range*(;e,ad,rg')LHAEPlain.plain){rg' = CipherRangeClass(e,tlen)}) Result
+
+val verify: e:id -> k:(;e) MAC.key ->
+  ad:(;e)LHAEPlain.adata ->
+  rg:range ->
+  ps:(;e,ad,rg) plain ->
+  res:(;e,ad,rg)LHAEPlain.plain Result
+
+predicate val Encoded: 'e * 'a * 'b * 'c * 'd -> bool
+
+private val pad: l:int { 0 < l /\ l <= 256 } -> b:bytes{Length(b) = l}
+
+val encode:
+    e:id{not SafeId(e) /\ (?alg,mac. e.aeAlg  = MtE(CBC_Stale(alg),mac) \/ e.aeAlg  = MtE(CBC_Fresh(alg),mac))} ->
+    tlen:nat{tlen <= max_TLSCipher_fragment_length} ->
+    rg:range{tlen = TargetLength(e,rg)} ->
+    ad:(;e) LHAEPlain.adata ->
+    pl:(;e,ad,rg) LHAEPlain.plain ->
+    tag:(;e) MAC.tag ->
+    (;PlainLength(e,tlen))lbytes
+
+val decode: e:id{not AuthId(e) /\ (?alg,mac. e.aeAlg  = MtE(CBC_Stale(alg),mac) \/
+	  e.aeAlg  = MtE(CBC_Fresh(alg),mac))} ->
+	ad:(;e) LHAEPlain.adata ->
+	rg:range ->
+	tlen:nat{tlen - IVSize(e) >= ( MacKeySize(MacAlg(e)) + FixedPadSize(e,()) ) /\
+	rg = CipherRangeClass(e,tlen)} ->
+	(;PlainLength(e,tlen))lbytes ->
+	ps:(;e,ad,rg)plain
+
+val encodeNoPad: e:id{not SafeId(e) /\ (?mac. e.aeAlg  = MACOnly(mac) \/
+	  e.aeAlg  = MtE(Stream_RC4_128,mac))} ->
+	tlen:nat{tlen <= max_TLSCipher_fragment_length} -> rg:range{tlen = TargetLength(e,rg)} ->
+	ad:(;e) LHAEPlain.adata -> (;e,ad,rg) LHAEPlain.plain -> (;e) MAC.tag ->
+	(;PlainLength(e,tlen))lbytes
+
+val decodeNoPad_bytes: e:id{?mac. e.aeAlg  = MACOnly(mac) \/
+	  e.aeAlg  = MtE(Stream_RC4_128,mac)} ->
+	ad:(;e) LHAEPlain.adata -> rg:range ->
+	tlen:nat{tlen >= MacKeySize(MacAlg(e)) /\
+	rg = CipherRangeClass(e,tlen)} -> (;PlainLength(e,tlen))lbytes ->
+	(;CipherRangeClass(e,tlen))rbytes * (;e)MAC.tag
+
+val decodeNoPad: e:id{not AuthId(e) /\ (?mac. e.aeAlg = MtE(Stream_RC4_128,mac))} ->
+	ad:(;e) LHAEPlain.adata -> rg:range ->
+	tlen:nat{tlen >= MacKeySize(MacAlg(e)) /\
+	rg = CipherRangeClass(e,tlen)} -> (;PlainLength(e,tlen))lbytes ->
+	(;e,ad,rg)plain
+
+function val MinTlen: id -> nat
+definition !id,mac.     id.aeAlg = MACOnly(mac)            => MinTlen(id) = MacSize(mac)
+definition !id,mac.     id.aeAlg = MtE(Stream_RC4_128,mac) => MinTlen(id) = MacSize(mac)
+definition !id,enc,mac. id.aeAlg = MtE(CBC_Fresh(enc),mac) => MinTlen(id) = IVSize(id) + MacSize(mac) + FixedPadSize(id,())
+definition !id,enc,mac. id.aeAlg = MtE(CBC_Stale(enc),mac) => MinTlen(id) = IVSize(id) + MacSize(mac) + FixedPadSize(id,())
+
+(*
+ask !id,enc,mac.
+  ( id.aeAlg = MtE(CBC_Stale(enc),mac) \/
+    id.aeAlg = MtE(CBC_Fresh(enc),mac) ) => MinTlen(id) >= BlockSize(enc)
+ *)
+
+// This property is needed to prove the first ask below;
+// it follows by case analysis on all enc/mac algorithms of TLS (see TLSConstants.fs7)
+private theorem !e,h. BlockSize(e) <= MacSize(h)
+
+ask !id,enc,mac.
+    id.aeAlg = MtE(CBC_Stale(enc),mac) => MinTlen(id) >= BlockSize(enc)
+
+ask !id,enc,mac.
+    id.aeAlg = MtE(CBC_Fresh(enc),mac) => MinTlen(id) >= BlockSize(enc)
+
+val plain: e:id{not AuthId(e)} ->
+  ad:(;e)LHAEPlain.adata -> tlen:nat{tlen <= max_TLSCipher_fragment_length /\ tlen >= MinTlen(e)} ->
+  (;PlainLength(e,tlen))lbytes ->
+  (;e,ad,CipherRangeClass(e,tlen)) plain
+
+val repr:  e:id{not SafeId(e)} ->
+  ad:(;e)LHAEPlain.adata -> rg:range ->
+  (;e,ad,rg) plain ->
+  (;PlainLength(e,TargetLength(e,rg)))lbytes{TargetLength(e,rg) <= max_TLSCipher_fragment_length}
+
+//------------------------------------------------------------------------------------------------------
+// Auxiliary definitions and assumptions for typing
+//------------------------------------------------------------------------------------------------------
+
+private definition !e,pl. MAC.Msg(e,pl) <=>
+     (SafeId(e) \/ (?ad,r,f. Length(ad) = 8 + StatefulPlain.ADLength(e)
+                          /\ B(pl) = MACPlain(e,r,B(ad),f)))
+
+private ask !i,t. not SafeId(i) /\ MAC.Msg(i,t) =>
+	(?ad,r,p. B(t) = B(ad) @| VLBytes(2,LHAEPlain.Payload(i,B(ad),r,p)) )
+
+private ask !i,ad,b,t. (?ad'',r'',f''. B(t) = B(ad'') @| VLBytes(2,LHAEPlain.Payload(i,B(ad''),r'',f'')) /\ Length(ad'') = 8 + StatefulPlain.ADLength(i) ) /\
+	B(t) = B(ad) @| VLBytes(2,B(b)) /\ Length(ad) = 8 + StatefulPlain.ADLength(i) =>
+	(?ad',r,p. B(ad) @| VLBytes(2,B(b)) = B(ad') @| VLBytes(2,LHAEPlain.Payload(i,B(ad'),r,p)) /\ ad = ad' )

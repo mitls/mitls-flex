@@ -1,0 +1,113 @@
+(*
+ * Copyright 2015 INRIA and Microsoft Corporation
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *)
+
+module AppData
+
+(* Implementing the AppData protocol. *)
+
+open TLSInfo
+open Bytes
+open Error
+open TLSError
+open DataStream
+open Range
+
+private type (;e:epoch) output_buffer =
+	| NoneOBuf of (;e)stream
+	| SomeOBuf of s:(;e) stream * r:range * f:(;Id(e),r)AppFragment.fragment *
+				 s':(;e)stream{s' = AppFragment.Extend(e,s,r,f) /\
+				 (Auth(e) => AppFragment.Sent(e,s,r,f))}
+
+private type (;ci:ConnectionInfo) app_state = {
+    app_incoming: (;ci.id_in) stream;
+    app_outgoing: (;ci.id_out) output_buffer;
+}
+
+private function val AppOutStream_int: e:epoch * (;e)output_buffer -> 'a
+private definition !e,s. AppOutStream_int(e,NoneOBuf(s)) = s
+private definition !e,s,r,f,s'.	AppOutStream_int(e,SomeOBuf(s,r,f,s')) = s
+
+function val AppInStream:  ci:ConnectionInfo * (;ci)app_state -> 'a //(;ci.id_in) stream
+function val AppOutStream: ci:ConnectionInfo * (;ci)app_state -> 'a //(;ci.id_out)stream
+private definition !ci,s. AppInStream(ci,s) = s.app_incoming
+private definition !ci,s. AppOutStream(ci,s) = AppOutStream_int(ci.id_out,s.app_outgoing)
+
+private function val AppOutBuf_int: e:epoch * (;e)output_buffer -> 'a
+private definition !e,s. AppOutBuf_int(e,NoneOBuf(s)) = None
+private definition !e,s,r,f,s'.	AppOutBuf_int(e,SomeOBuf(s,r,f,s')) = Some((r,f,s'))
+
+function val AppOutBuf: ci:ConnectionInfo * (;ci)app_state -> 'a //(range * AppFragment.plain * stream) option
+private definition !ci,s. AppOutBuf(ci,s) = AppOutBuf_int(ci.id_out,s.app_outgoing)
+
+val inStream:  ci:ConnectionInfo -> s:(;ci)app_state -> st:(;ci.id_in) stream{st = AppInStream(ci,s) }
+val outStream: ci:ConnectionInfo -> s:(;ci)app_state -> st:(;ci.id_out)stream{st = AppOutStream(ci,s)}
+
+val init: ci:ConnectionInfo ->
+	s:(;ci)app_state{
+	    AppInStream(ci,s)  = EmptyStream(ci.id_in) /\
+		AppOutBuf(ci,s) = None /\ AppOutStream(ci,s) = EmptyStream(ci.id_out)}
+
+val writeAppData: ci:ConnectionInfo -> s:(;ci)app_state ->
+	r:range -> f:(;Id(ci.id_out),r) AppFragment.fragment{Auth(ci.id_out) => AppFragment.Sent(ci.id_out,AppOutStream(ci,s),r,f)} ->
+	st:(;ci.id_out)stream{st = AppFragment.Extend(ci.id_out,AppOutStream(ci,s),r,f)} ->
+	s':(;ci)app_state{AppOutBuf(ci,s') = Some((r,f,st)) /\
+		AppOutStream(ci,s') = AppOutStream(ci,s) /\
+		AppInStream (ci,s') = AppInStream (ci,s)}
+
+private val noneOutBuf: e:epoch -> s:(;e) stream -> o:(;e) output_buffer{o = NoneOBuf(s)}
+private val some: x:'a -> o:'a option{o = Some(x)}
+
+val next_fragment: ci:ConnectionInfo{IsSuccEpoch(ci.id_out)} ->
+  s:(;ci)app_state ->
+  ro:((r:range * f:(;Id(ci.id_out),r)AppFragment.fragment * s':(;ci)app_state)
+	{(Auth(ci.id_out) => AppFragment.Sent(ci.id_out,AppOutStream(ci,s),r,f) ) /\
+	  AppOutStream(ci,s') = AppFragment.Extend(ci.id_out,AppOutStream(ci,s),r,f) /\
+	  AppOutBuf(ci,s) = Some((r,f,AppFragment.Extend(ci.id_out,AppOutStream(ci,s),r,f))) /\
+	  AppOutBuf(ci,s') = None /\
+	  AppInStream (ci,s') = AppInStream (ci,s)}) option{
+    ro = None => AppOutBuf(ci,s) = None}
+
+val clearOutBuf: ci:ConnectionInfo -> s:(;ci)app_state ->
+	s':(;ci)app_state{
+		AppOutStream(ci,s') = AppOutStream(ci,s) /\
+		AppOutBuf(ci,s') = None /\
+		AppInStream(ci,s') = AppInStream(ci,s)
+		}
+
+val recv_fragment: ci:ConnectionInfo -> s:(;ci)app_state -> r:range ->
+	f:(;Id(ci.id_in),r)AppFragment.fragment{(Auth(ci.id_in) =>
+		AppFragment.Sent(ci.id_in,AppInStream(ci,s),r,f)) /\
+		TLSInfo.OpenState(ci.id_in)} ->
+	(d:(;ci.id_in,AppInStream(ci,s),r)delta *
+	 s':(;ci)app_state){
+		AppOutBuf(ci,s') = AppOutBuf(ci,s) /\
+		AppOutStream(ci,s') = AppOutStream(ci,s) /\
+		AppInStream(ci,s') = AppFragment.Extend(ci.id_in,AppInStream(ci,s),r,f) /\
+                AppFragment.Payload(Id(ci.id_in),r,f) = DataStream.Payload(ci.id_in,AppInStream(ci,s),r,d)
+	 }
+
+val reset_outgoing: ci:ConnectionInfo -> s:(;ci)app_state ->
+	ci':ConnectionInfo{ci'.role = ci.role /\ ci'.id_in = ci.id_in} ->
+	s':(;ci')app_state{AppOutBuf(ci',s') = None /\
+            AppOutStream(ci',s') = EmptyStream(ci'.id_out) /\
+            AppInStream(ci',s') = AppInStream(ci,s)}
+
+val reset_incoming: ci:ConnectionInfo -> s:(;ci)app_state ->
+	ci':ConnectionInfo{ci'.role = ci.role /\ ci'.id_out = ci.id_out} ->
+	s':(;ci')app_state{
+            AppInStream(ci',s') = EmptyStream(ci'.id_in) /\
+            AppOutStream(ci',s') = AppOutStream(ci,s) /\
+			AppOutBuf(ci',s') = AppOutBuf(ci,s)}
