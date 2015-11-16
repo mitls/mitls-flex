@@ -351,7 +351,7 @@ type FlexClientKeyExchange =
         let x,gx =
             if (kexdh.x = empty_bytes) || (kexdh.gx = empty_bytes) then CoreDH.gen_key_pg p g else kexdh.x,kexdh.gx
         in
-        let payload = clientKEXExplicitBytes_DH gx in
+        let payload = clientKEXExplicitBytes_DH (DH.serialize {dhe_nil with dhe_p = Some gx}) in
         let kexdh = { kexdh with x = x; gx = gx } in
         let fcke = { kex = DH(kexdh); payload = payload } in
         // We redundantly return kexdh for a better log
