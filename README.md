@@ -92,11 +92,11 @@ and the 'make' build utility:
   You need to install Cygwin to get make. 
 
 * Linux, Mac OS X, and other variants of Unix. Use the Mono framework,
-  version 3.4.0 or above; this includes F# 3.1. Follow the
-  instructions to download these from
-  http://www.mono-project.com/download/#download-lin or
-  http://www.mono-project.com/download/#download-mac. (On Mac,
-  homebrew formulas for both mono and fsharp seem not to work and
+  version 3.4.0 or above and F# version 3.1 or above. Follow the
+  instructions from
+  http://www.mono-project.com/download/#download-lin and http://fsharp.org/use/linux/ or
+  http://www.mono-project.com/download/#download-mac and http://fsharp.org/use/mac/.
+  (On Mac, homebrew formulas for both mono and fsharp seem not to work and
   cannot be used to build miTLS or flexTLS.)
 
   make will already be on your machine. 
