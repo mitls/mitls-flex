@@ -147,6 +147,12 @@ Diffie-Hellman ciphersuites additionally require default parameters
 to be loaded from a file. A sample default-dh.pem file with default
 parameters is provided in the data/dh directory.
 
+For convenience, a template install is provided with this release.
+To install the PKI, go to miTLS-0.9.0/test and run "make pki.built" to
+generate and install certificates.
+On Fedora, you will need to install the openssl-perl package before
+doing this. Otherwise, the more detailed instructions are: 
+
 ### 4.a. Microsoft Windows
 
 Add a CA certificate to the store by using the certutil command
@@ -195,11 +201,7 @@ Delete a certificate from the store by using the certmgr command
   certmgr -del -c My <NAME>
 
 
-For convenience, a template install is provided with this release.
-To install the PKI, go to miTLS-0.9.0/test and run "make pki.built" to
-generate and install certificates.
-On Fedora, you will need to install the openssl-perl package before
-doing this.
+
 
 
 5. FlexTLS

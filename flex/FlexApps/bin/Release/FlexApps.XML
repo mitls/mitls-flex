@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<doc>
+<assembly><name>FlexApps</name></assembly>
+<members>
+<member name="M:FlexApps.Attack_Alert_Warning.Attack_Alert_Warning.client(System.String,Microsoft.FSharp.Core.FSharpOption{System.Int32},Microsoft.FSharp.Core.FSharpOption{FlexTLS.FlexTypes.state})">
+<summary>
+ Run full RSA Handshake with server side authentication only *)
+</summary>
+</member>
+<member name="M:FlexApps.Attack_SmallSubgroup_DHE.Attack_SmallSubgroup_DHE.client(System.Boolean,System.Int32,System.String,System.String,System.String,Microsoft.FSharp.Core.FSharpOption{System.Int32})">
+ <summary>
+ Runs a DHE handshake with an invalid ephemeral public key from a (small) subgroup
+ </summary>
+ <remarks>
+ Learns y mod q where y is the server secret DH exponent (only useful if the server reuses y)
+ </remarks>
+ <param name="check"> Check that server p is as expected and warn if gy changes </param>
+ <param name="retries"> Number of retries before giving up </param>
+ <param name="ps"> Diffie-Hellman parameter p </param>
+ <param name="qs"> Small subgroup order (normally, a factor of p-1) </param>
+ <param name="server_name"> Hostname to connect to </param>
+ <param name="port"> Port to connect to </param>
+ <returns> Updated state </returns>
+</member>
+<member name="M:FlexApps.Handshake_full_DHE.Handshake_full_DHE.server_with_client_auth(System.String,Microsoft.FSharp.Core.FSharpOption{System.String},Microsoft.FSharp.Core.FSharpOption{System.Int32},Microsoft.FSharp.Core.FSharpOption{System.Int32})">
+<summary>
+ SERVER - Run DHE Handshake with mutual DHE with mutual server and client authentication
+</summary>
+</member>
+<member name="M:FlexApps.Handshake_full_DHE.Handshake_full_DHE.server(System.String,Microsoft.FSharp.Core.FSharpOption{System.String},Microsoft.FSharp.Core.FSharpOption{System.Int32},Microsoft.FSharp.Core.FSharpOption{System.Int32})">
+<summary>
+ SERVER - Run DHE Handshake with server side authentication only *)
+</summary>
+</member>
+<member name="M:FlexApps.Handshake_full_DHE.Handshake_full_DHE.client_with_auth(System.String,System.String,Microsoft.FSharp.Core.FSharpOption{System.Int32},Microsoft.FSharp.Core.FSharpOption{System.Int32})">
+<summary>
+ CLIENT - Run DHE Handshake with mutual server and client authentication
+</summary>
+</member>
+<member name="M:FlexApps.Handshake_full_DHE.Handshake_full_DHE.client(System.String,Microsoft.FSharp.Core.FSharpOption{System.Int32},Microsoft.FSharp.Core.FSharpOption{FlexTLS.FlexTypes.state},Microsoft.FSharp.Core.FSharpOption{System.Int32})">
+<summary>
+ CLIENT - Run DHE Handshake with server authentication only
+</summary>
+</member>
+<member name="M:FlexApps.Handshake_full_RSA.Handshake_full_RSA.server_with_client_auth(System.String,Microsoft.FSharp.Core.FSharpOption{System.String},Microsoft.FSharp.Core.FSharpOption{System.Int32},Microsoft.FSharp.Core.FSharpOption{System.Int32})">
+<summary>
+ SERVER - Run full RSA Handshake with mutual server and client authentication
+</summary>
+</member>
+<member name="M:FlexApps.Handshake_full_RSA.Handshake_full_RSA.server(System.String,Microsoft.FSharp.Core.FSharpOption{System.String},Microsoft.FSharp.Core.FSharpOption{System.Int32},Microsoft.FSharp.Core.FSharpOption{System.Int32})">
+<summary>
+ SERVER - Run full RSA Handshake with server side authentication only
+</summary>
+</member>
+<member name="M:FlexApps.Handshake_full_RSA.Handshake_full_RSA.client_with_auth(System.String,System.String,Microsoft.FSharp.Core.FSharpOption{System.Int32},Microsoft.FSharp.Core.FSharpOption{System.Int32})">
+<summary>
+ CLIENT - Run full RSA Handshake with mutual server and client authentication *)
+</summary>
+</member>
+<member name="M:FlexApps.Handshake_full_RSA.Handshake_full_RSA.client(System.String,Microsoft.FSharp.Core.FSharpOption{System.Int32},Microsoft.FSharp.Core.FSharpOption{FlexTLS.FlexTypes.state},Microsoft.FSharp.Core.FSharpOption{System.Int32})">
+<summary>
+ CLIENT - Run full RSA Handshake with server authentication only
+</summary>
+</member>
+<member name="T:FlexApps.Handshake_full_RSA.Handshake_full_RSA">
+<summary>
+ Run full RSA handshakes, complying with TLS_RSA_WITH_AES_128_GCM_SHA256
+</summary>
+</member>
+</members>
+</doc>

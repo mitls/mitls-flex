@@ -1,0 +1,130 @@
+INFO --- TCP : Connecting to localhost:443
+INFO --- # CLIENT HELLO : FlexClientHello.send
+INFO --- # SERVER HELLO : FlexServerHello.receive
+INFO --- --- Ciphersuite : TLS_RSA_WITH_AES_128_GCM_SHA256
+INFO --- # CERTIFICATE : FlexCertificate.receive
+INFO --- # SERVER HELLO DONE : FlexServerHelloDone.receive
+INFO --- # CLIENT KEY EXCHANGE : FlexClientKeyExchange.sendRSA
+INFO --- # CCS : FlexCCS.send
+INFO --- # FINISHED : FlexFinished.send
+INFO --- # CCS : FlexCCS.receive
+INFO --- # FINISHED : FlexFinished.receive
+INFO --- BEGIN deviant trace 153
+INFO --- TCP : Connecting to localhost:443
+INFO --- # CLIENT HELLO : FlexClientHello.send
+INFO --- # SERVER HELLO : FlexServerHello.receive
+INFO --- unsupported: Error at FlexRecord.fs:82: Error at Tcp.fs:71: TCP connection closed: Read returned 0 bytes..
+INFO --- END UNSUPPORTED deviant trace 153
+INFO --- BEGIN deviant trace 152
+INFO --- TCP : Connecting to localhost:443
+INFO --- # CLIENT HELLO : FlexClientHello.send
+INFO --- # SERVER HELLO : FlexServerHello.receive
+INFO --- unsupported: Error at FlexRecord.fs:82: Error at Tcp.fs:71: TCP connection closed: Read returned 0 bytes..
+INFO --- END UNSUPPORTED deviant trace 152
+INFO --- BEGIN deviant trace 151
+INFO --- TCP : Connecting to localhost:443
+INFO --- # CLIENT HELLO : FlexClientHello.send
+INFO --- # SERVER HELLO : FlexServerHello.receive
+INFO --- unsupported: Error at FlexRecord.fs:82: Error at Tcp.fs:71: TCP connection closed: Read returned 0 bytes..
+INFO --- END UNSUPPORTED deviant trace 151
+INFO --- BEGIN deviant trace 150
+INFO --- TCP : Connecting to localhost:443
+INFO --- # CLIENT HELLO : FlexClientHello.send
+INFO --- # SERVER HELLO : FlexServerHello.receive
+INFO --- unsupported: Error at FlexRecord.fs:82: Error at Tcp.fs:71: TCP connection closed: Read returned 0 bytes..
+INFO --- END UNSUPPORTED deviant trace 150
+INFO --- BEGIN deviant trace 149
+INFO --- TCP : Connecting to localhost:443
+INFO --- # CLIENT HELLO : FlexClientHello.send
+INFO --- # SERVER HELLO : FlexServerHello.receive
+INFO --- unsupported: Error at FlexRecord.fs:82: Error at Tcp.fs:71: TCP connection closed: Read returned 0 bytes..
+INFO --- END UNSUPPORTED deviant trace 149
+INFO --- BEGIN deviant trace 148
+INFO --- TCP : Connecting to localhost:443
+INFO --- # CLIENT HELLO : FlexClientHello.send
+INFO --- # SERVER HELLO : FlexServerHello.receive
+INFO --- unsupported: Error at FlexRecord.fs:82: Error at Tcp.fs:71: TCP connection closed: Read returned 0 bytes..
+INFO --- END UNSUPPORTED deviant trace 148
+INFO --- BEGIN deviant trace 141
+INFO --- TCP : Connecting to localhost:443
+INFO --- # CLIENT HELLO : FlexClientHello.send
+INFO --- # SERVER HELLO : FlexServerHello.receive
+INFO --- unsupported: Error at FlexRecord.fs:82: Error at Tcp.fs:71: TCP connection closed: Read returned 0 bytes..
+INFO --- END UNSUPPORTED deviant trace 141
+INFO --- BEGIN deviant trace 140
+INFO --- TCP : Connecting to localhost:443
+INFO --- # CLIENT HELLO : FlexClientHello.send
+INFO --- # SERVER HELLO : FlexServerHello.receive
+INFO --- unsupported: Error at FlexRecord.fs:82: Error at Tcp.fs:71: TCP connection closed: Read returned 0 bytes..
+INFO --- END UNSUPPORTED deviant trace 140
+INFO --- BEGIN deviant trace 139
+INFO --- TCP : Connecting to localhost:443
+INFO --- # CLIENT HELLO : FlexClientHello.send
+INFO --- # SERVER HELLO : FlexServerHello.receive
+INFO --- unsupported: Error at FlexRecord.fs:82: Error at Tcp.fs:71: TCP connection closed: Read returned 0 bytes..
+INFO --- END UNSUPPORTED deviant trace 139
+INFO --- BEGIN deviant trace 138
+INFO --- TCP : Connecting to localhost:443
+INFO --- # CLIENT HELLO : FlexClientHello.send
+INFO --- # SERVER HELLO : FlexServerHello.receive
+INFO --- unsupported: Error at FlexRecord.fs:82: Error at Tcp.fs:71: TCP connection closed: Read returned 0 bytes..
+INFO --- END UNSUPPORTED deviant trace 138
+INFO --- BEGIN deviant trace 137
+INFO --- TCP : Connecting to localhost:443
+INFO --- # CLIENT HELLO : FlexClientHello.send
+INFO --- # SERVER HELLO : FlexServerHello.receive
+INFO --- unsupported: Error at FlexRecord.fs:82: Error at Tcp.fs:71: TCP connection closed: Read returned 0 bytes..
+INFO --- END UNSUPPORTED deviant trace 137
+INFO --- BEGIN deviant trace 136
+INFO --- TCP : Connecting to localhost:443
+INFO --- # CLIENT HELLO : FlexClientHello.send
+INFO --- # SERVER HELLO : FlexServerHello.receive
+INFO --- unsupported: Error at FlexRecord.fs:82: Error at Tcp.fs:71: TCP connection closed: Read returned 0 bytes..
+INFO --- END UNSUPPORTED deviant trace 136
+INFO --- BEGIN deviant trace 126
+INFO --- TCP : Connecting to localhost:443
+INFO --- # CLIENT HELLO : FlexClientHello.send
+INFO --- # SERVER HELLO : FlexServerHello.receive
+INFO --- unsupported: Error at FlexRecord.fs:82: Error at Tcp.fs:71: TCP connection closed: Read returned 0 bytes..
+INFO --- END UNSUPPORTED deviant trace 126
+INFO --- BEGIN deviant trace 125
+INFO --- TCP : Connecting to localhost:443
+INFO --- # CLIENT HELLO : FlexClientHello.send
+INFO --- # SERVER HELLO : FlexServerHello.receive
+INFO --- unsupported: Error at FlexRecord.fs:82: Error at Tcp.fs:71: TCP connection closed: Read returned 0 bytes..
+INFO --- END UNSUPPORTED deviant trace 125
+INFO --- BEGIN deviant trace 124
+INFO --- TCP : Connecting to localhost:443
+INFO --- # CLIENT HELLO : FlexClientHello.send
+INFO --- # SERVER HELLO : FlexServerHello.receive
+INFO --- unsupported: Error at FlexRecord.fs:82: Error at Tcp.fs:71: TCP connection closed: Read returned 0 bytes..
+INFO --- END UNSUPPORTED deviant trace 124
+INFO --- BEGIN deviant trace 120
+INFO --- TCP : Connecting to localhost:443
+INFO --- # CLIENT HELLO : FlexClientHello.send
+INFO --- # SERVER HELLO : FlexServerHello.receive
+INFO --- unsupported: Error at FlexRecord.fs:82: Error at Tcp.fs:71: TCP connection closed: Read returned 0 bytes..
+INFO --- END UNSUPPORTED deviant trace 120
+INFO --- BEGIN deviant trace 119
+INFO --- TCP : Connecting to localhost:443
+INFO --- # CLIENT HELLO : FlexClientHello.send
+INFO --- # SERVER HELLO : FlexServerHello.receive
+INFO --- unsupported: Error at FlexRecord.fs:82: Error at Tcp.fs:71: TCP connection closed: Read returned 0 bytes..
+INFO --- END UNSUPPORTED deviant trace 119
+INFO --- BEGIN deviant trace 118
+INFO --- TCP : Connecting to localhost:443
+INFO --- # CLIENT HELLO : FlexClientHello.send
+INFO --- # SERVER HELLO : FlexServerHello.receive
+INFO --- unsupported: Error at FlexRecord.fs:82: Error at Tcp.fs:71: TCP connection closed: Read returned 0 bytes..
+INFO --- END UNSUPPORTED deviant trace 118
+INFO --- TCP : Connecting to localhost:443
+INFO --- # CLIENT HELLO : FlexClientHello.send
+INFO --- # SERVER HELLO : FlexServerHello.receive
+INFO --- --- Ciphersuite : TLS_RSA_WITH_AES_128_GCM_SHA256
+INFO --- # CERTIFICATE : FlexCertificate.receive
+INFO --- # SERVER HELLO DONE : FlexServerHelloDone.receive
+INFO --- # CLIENT KEY EXCHANGE : FlexClientKeyExchange.sendRSA
+INFO --- # CCS : FlexCCS.send
+INFO --- # FINISHED : FlexFinished.send
+INFO --- # CCS : FlexCCS.receive
+INFO --- # FINISHED : FlexFinished.receive

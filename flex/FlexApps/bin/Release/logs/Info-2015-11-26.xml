@@ -1,0 +1,77 @@
+<log4j:event logger="file" level="INFO" timestamp="1448538317033" thread="1">
+  <log4j:message>TCP : Connecting to localhost:443</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(26268)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448538318130" thread="1">
+  <log4j:message># CLIENT HELLO : FlexClientHello.send</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(26268)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448538318289" thread="1">
+  <log4j:message># SERVER HELLO : FlexServerHello.receive</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(26268)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448538318337" thread="1">
+  <log4j:message>--- Ciphersuite : TLS_RSA_WITH_AES_128_GCM_SHA256</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(26268)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448538318366" thread="1">
+  <log4j:message># CERTIFICATE : FlexCertificate.receive</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(26268)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448538318408" thread="1">
+  <log4j:message># SERVER HELLO DONE : FlexServerHelloDone.receive</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(26268)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448538318428" thread="1">
+  <log4j:message># CLIENT KEY EXCHANGE : FlexClientKeyExchange.sendRSA</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(26268)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448538318819" thread="1">
+  <log4j:message># CCS : FlexCCS.send</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(26268)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448538318836" thread="1">
+  <log4j:message># FINISHED : FlexFinished.send</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(26268)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448538318889" thread="1">
+  <log4j:message># CCS : FlexCCS.receive</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(26268)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448538318912" thread="1">
+  <log4j:message># FINISHED : FlexFinished.receive</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(26268)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>

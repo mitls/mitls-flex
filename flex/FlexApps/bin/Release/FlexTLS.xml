@@ -1,0 +1,1962 @@
+<?xml version="1.0" encoding="utf-8"?>
+<doc>
+<assembly><name>FlexTLS</name></assembly>
+<members>
+<member name="M:FlexTLS.FlexAlert.FlexAlert.send(FlexTLS.FlexTypes.state,Bytes.bytes,Microsoft.FSharp.Core.FSharpOption{FlexTLS.FlexTypes.fragmentationPolicy})">
+ <summary>
+ Send an Alert message to the network stream
+ </summary>
+ <param name="st"> State of the current Handshake </param>
+ <param name="payload"> Alert bytes </param>
+ <param name="fp"> Optional fragmentation policy applied to the message </param>
+ <returns> Updated state </returns>
+</member>
+<member name="M:FlexTLS.FlexAlert.FlexAlert.send(FlexTLS.FlexTypes.state,TLSError.alertDescription,Microsoft.FSharp.Core.FSharpOption{FlexTLS.FlexTypes.fragmentationPolicy})">
+ <summary>
+ Send an Alert message to the network stream from an Alert Description
+ </summary>
+ <param name="st"> State of the current Handshake </param>
+ <param name="ad"> Alert description union type already parsed </param>
+ <param name="fp"> Optional fragmentation policy applied to the message </param>
+ <returns> Updated state </returns>
+</member>
+<member name="M:FlexTLS.FlexAlert.FlexAlert.receive(FlexTLS.FlexTypes.state)">
+ <summary>
+ Receive an Alert message from the network stream
+ </summary>
+ <param name="st"> State of the current Handshake </param>
+ <returns> Updated state * parsed alert description * alert bytes </returns>
+</member>
+<member name="M:FlexTLS.FlexAlert.FlexAlert.forward(FlexTLS.FlexTypes.state,FlexTLS.FlexTypes.state,Microsoft.FSharp.Core.FSharpOption{FlexTLS.FlexTypes.fragmentationPolicy})">
+ <summary>
+ Forward an Alert message received from a network stream
+ </summary>
+ <param name="stin"> State of the current Handshake on the incoming side </param>
+ <param name="stout"> State of the current Handshake on the outgoing side </param>
+ <param name="fp"> Optional fragmentation policy applied to the message </param>
+ <returns> Updated incoming state * Updated outgoing state * forwarded alert bytes </returns>
+</member>
+<member name="T:FlexTLS.FlexAlert.FlexAlert">
+ <summary>
+ Module receiving, sending and forwarding Alert messages.
+ </summary>
+</member>
+<member name="M:FlexTLS.FlexAppData.FlexAppData.send_http_banner(FlexTLS.FlexTypes.state)">
+ <summary>
+ Send the HTTP application data banner for FlexTLS
+ </summary>
+ <param name="st"> State of the current Handshake </param>
+ <returns> Updated state <returns>
+</member>
+<member name="M:FlexTLS.FlexAppData.FlexAppData.send_http(FlexTLS.FlexTypes.state,System.String)">
+ <summary>
+ Send the HTTP application data
+ </summary>
+ <param name="st"> State of the current Handshake </param>
+ <param name="data"> String to send as HTTP </param>
+ <returns> Updated state <returns>
+</member>
+<member name="M:FlexTLS.FlexAppData.FlexAppData.send(FlexTLS.FlexTypes.state,Bytes.bytes,Microsoft.FSharp.Core.FSharpOption{FlexTLS.FlexTypes.fragmentationPolicy})">
+ <summary>
+ Send application data as raw bytes to network stream
+ </summary>
+ <param name="st"> State of the current Handshake </param>
+ <param name="data"> Application data as raw bytes </param>
+ <param name="fp"> Optional fragmentation policy applied to the message </param>
+ <returns> Updated state </returns>
+</member>
+<member name="M:FlexTLS.FlexAppData.FlexAppData.send(FlexTLS.FlexTypes.state,System.String,Microsoft.FSharp.Core.FSharpOption{System.Text.Encoding},Microsoft.FSharp.Core.FSharpOption{FlexTLS.FlexTypes.fragmentationPolicy})">
+ <summary>
+ Send application data as an encoded string to network stream
+ </summary>
+ <param name="st"> State of the current Handshake </param>
+ <param name="data"> Application data as encoded string </param>
+ <param name="fp"> Optional fragmentation policy applied to the message </param>
+ <returns> Updated state </returns>
+</member>
+<member name="M:FlexTLS.FlexAppData.FlexAppData.receive(FlexTLS.FlexTypes.state)">
+ <summary>
+ Receive application data from network stream
+ </summary>
+ <param name="st"> State of the current Handshake </param>
+ <returns> Updated state * Application data bytes received </returns>
+</member>
+<member name="M:FlexTLS.FlexAppData.FlexAppData.forward(FlexTLS.FlexTypes.state,FlexTLS.FlexTypes.state,Microsoft.FSharp.Core.FSharpOption{FlexTLS.FlexTypes.fragmentationPolicy})">
+ <summary>
+ Forward application data to the network stream
+ </summary>
+ <param name="stin"> State of the current Handshake on the incoming side </param>
+ <param name="stout"> State of the current Handshake on the outgoing side </param>
+ <param name="fp"> Optional fragmentation policy applied to the message </param>
+ <returns> Updated incoming state * Updated outgoing state * forwarded application data bytes </returns>
+</member>
+<member name="T:FlexTLS.FlexAppData.FlexAppData">
+ <summary>
+ Module receiving, sending and forwarding TLS application data.
+ </summary>
+</member>
+<member name="M:FlexTLS.FlexCCS.FlexCCS.send(FlexTLS.FlexTypes.state,Microsoft.FSharp.Core.FSharpOption{FlexTLS.FlexTypes.FChangeCipherSpecs})">
+ <summary>
+ Send CCS to the network stream
+ </summary>
+ <param name="st"> State of the current Handshake on the incoming side </param>
+ <param name="fccs"> Optional CCS message record </param>
+ <returns> Updated state * CCS message record </returns>
+</member>
+<member name="M:FlexTLS.FlexCCS.FlexCCS.receive(FlexTLS.FlexTypes.state)">
+ <summary>
+ Receive CCS message from network stream
+ </summary>
+ <param name="st"> State of the current Handshake </param>
+ <returns> Updated state * CCS record * CCS byte </returns>
+</member>
+<member name="M:FlexTLS.FlexCCS.FlexCCS.forward(FlexTLS.FlexTypes.state,FlexTLS.FlexTypes.state)">
+ <summary>
+ Forward CCS to the network stream
+ </summary>
+ <param name="stin"> State of the current Handshake on the incoming side </param>
+ <param name="stout"> State of the current Handshake on the outgoing side </param>
+ <returns> Updated incoming state * Updated outgoing state * forwarded CCS byte </returns>
+</member>
+<member name="T:FlexTLS.FlexCCS.FlexCCS">
+ <summary>
+ Module receiving, sending and forwarding TLS ChangeCipherSpec messages.
+ </summary>
+</member>
+<member name="M:FlexTLS.FlexCertificate.FlexCertificate.send(FlexTLS.FlexTypes.state,Microsoft.FSharp.Collections.FSharpList{Bytes.bytes},Microsoft.FSharp.Core.FSharpOption{FlexTLS.FlexTypes.fragmentationPolicy})">
+ <summary>
+ Send a Certificate message to the network stream using User provided chain of certificates
+ </summary>
+ <param name="st"> State of the current Handshake </param>
+ <param name="cert"> Certificate chain </param>
+ <param name="fp"> Optional fragmentation policy at the record level </param>
+ <returns> Updated state * FCertificate message </returns>
+</member>
+<member name="M:FlexTLS.FlexCertificate.FlexCertificate.send(FlexTLS.FlexTypes.state,TLSInfo.preRole,Microsoft.FSharp.Core.FSharpOption{FlexTLS.FlexTypes.nextSecurityContext},Microsoft.FSharp.Core.FSharpOption{FlexTLS.FlexTypes.FCertificate},Microsoft.FSharp.Core.FSharpOption{FlexTLS.FlexTypes.fragmentationPolicy})">
+ <summary>
+ Send a Certificate message to the network stream using User provided chain of certificates
+ </summary>
+ <param name="st"> State of the current Handshake </param>
+ <param name="role"> Behavior is either Client or Server </param>
+ <param name="nsc"> Next security context object updated with new data </param>
+ <param name="fcrt"> Optional Certificate message </param>
+ <param name="fp"> Optional fragmentation policy at the record level </param>
+ <returns> Updated state * next security context * FCertificate message </returns>
+</member>
+<member name="M:FlexTLS.FlexCertificate.FlexCertificate.send(FlexTLS.FlexTypes.state,TLSInfo.preRole,Microsoft.FSharp.Collections.FSharpList{Bytes.bytes},Microsoft.FSharp.Core.FSharpOption{FlexTLS.FlexTypes.nextSecurityContext},Microsoft.FSharp.Core.FSharpOption{FlexTLS.FlexTypes.fragmentationPolicy})">
+ <summary>
+ Send a Certificate message to the network stream using User provided chain of certificates
+ </summary>
+ <param name="st"> State of the current Handshake </param>
+ <param name="role"> Behavior is either Client or Server </param>
+ <param name="chain"> Certificate chain that will be send over the network </param>
+ <param name="nsc"> Optional Next security context object updated with new data </param>
+ <param name="fp"> Optional fragmentation policy at the record level </param>
+ <returns> Updated state * next security context * FCertificate message </returns>
+</member>
+<member name="M:FlexTLS.FlexCertificate.FlexCertificate.receive(FlexTLS.FlexTypes.state,TLSInfo.preRole,Microsoft.FSharp.Core.FSharpOption{FlexTLS.FlexTypes.nextSecurityContext})">
+ <summary>
+ Receive a Certificate message from the network stream
+ </summary>
+ <param name="st"> State of the current Handshake </param>
+ <param name="role"> Behaviour is either Client or Server </param>
+ <param name="nsc"> Optional Next security context object updated with new data </param>
+ <returns> Updated state * next security context * FCertificate message </returns>
+</member>
+<member name="M:FlexTLS.FlexCertificate.FlexCertificate.prepare(Microsoft.FSharp.Collections.FSharpList{Bytes.bytes})">
+ <summary>
+ Prepare a Certificate message that will not be sent to the network
+ </summary>
+ <param name="cert"> Certificate chain </param>
+ <returns> FCertificate record </returns>
+</member>
+<member name="T:FlexTLS.FlexCertificate.FlexCertificate">
+ <summary>
+ Module receiving, sending and forwarding TLS Certificate messages.
+ </summary>
+</member>
+<member name="M:FlexTLS.FlexCertificateRequest.FlexCertificateRequest.send(FlexTLS.FlexTypes.state,TLSConstants.cipherSuite,TLSConstants.PreProtocolVersion,Microsoft.FSharp.Core.FSharpOption{FlexTLS.FlexTypes.fragmentationPolicy})">
+ <summary>
+ Send a CertificateRequest message to the network stream
+ </summary>
+ <param name="st"> State of the current Handshake </param>
+ <param name="cs"> Ciphersuite used to generate the request </param>
+ <param name="pv"> Protocol version used to generate the request </param>
+ <param name="fp"> Optional fragmentation policy at the record level </param>
+ <returns> Updated state * FCertificateRequest message record </returns>
+</member>
+<member name="M:FlexTLS.FlexCertificateRequest.FlexCertificateRequest.send(FlexTLS.FlexTypes.state,Microsoft.FSharp.Core.FSharpOption{FlexTLS.FlexTypes.nextSecurityContext},Microsoft.FSharp.Core.FSharpOption{FlexTLS.FlexTypes.fragmentationPolicy})">
+ <summary>
+ Send a CertificateRequest message to the network stream
+ </summary>
+ <param name="st"> State of the current Handshake </param>
+ <param name="nsc"> Optional next security context to be updated </param>
+ <param name="fp"> Optional fragmentation policy at the record level </param>
+ <returns> Updated state * FCertificateRequest message record </returns>
+</member>
+<member name="M:FlexTLS.FlexCertificateRequest.FlexCertificateRequest.receive(FlexTLS.FlexTypes.state,Microsoft.FSharp.Core.FSharpOption{FlexTLS.FlexTypes.nextSecurityContext})">
+ <summary>
+ Receive a CertificateRequest message from the network stream
+ </summary>
+ <param name="st"> State of the current Handshake </param>
+ <param name="nsc"> Optional Next security context object updated with new data </param>
+ <returns> Updated state * next security context * FCertificateRequest message record </returns>
+</member>
+<member name="M:FlexTLS.FlexCertificateRequest.FlexCertificateRequest.prepare(TLSConstants.cipherSuite,TLSConstants.PreProtocolVersion)">
+ <summary>
+ Prepare a CertificateRequest message that won't be sent to the network stream
+ </summary>
+ <param name="cs"> Ciphersuite used to generate the request </param>
+ <param name="pv"> Protocol version used to generate the request </param>
+ <returns> FCertificateRequest message record</returns>
+</member>
+<member name="T:FlexTLS.FlexCertificateRequest.FlexCertificateRequest">
+ <summary>
+ Module receiving, sending and forwarding TLS Certificate Request messages.
+ </summary>
+</member>
+<member name="M:FlexTLS.FlexCertificateVerify.FlexCertificateVerify.send(FlexTLS.FlexTypes.state,TLSConstants.cipherSuite,TLSConstants.PreProtocolVersion,System.Tuple{TLSConstants.sigAlg,TLSConstants.hashAlg},Sig.skey,Microsoft.FSharp.Core.FSharpOption{Bytes.bytes},Microsoft.FSharp.Core.FSharpOption{FlexTLS.FlexTypes.fragmentationPolicy})">
+ <summary>
+ Send a CertificateVerify (signature over the current log) message to the network stream
+ </summary>
+ <param name="st"> State of the current Handshake </param>
+ <param name="cs"> Ciphersuite of the current Handshake </param>
+ <param name="pv"> Protocol version of the current Handshake </param>
+ <param name="alg"> Signature algorithm allowed and usually provided by a Certificate Request </param>
+ <param name="skey"> Signature secret key associated to the algorithm </param>
+ <param name="ms"> Optional master secret that has to be provided to compute the log if protocol version is SSL3 </param>
+ <param name="fp"> Optional fragmentation policy at the record level </param>
+ <returns> Updated state * Certificate Verify message </returns>
+</member>
+<member name="M:FlexTLS.FlexCertificateVerify.FlexCertificateVerify.send(FlexTLS.FlexTypes.state,TLSInfo.SessionInfo,System.Tuple{TLSConstants.sigAlg,TLSConstants.hashAlg},Sig.skey,Microsoft.FSharp.Core.FSharpOption{Bytes.bytes},Microsoft.FSharp.Core.FSharpOption{FlexTLS.FlexTypes.fragmentationPolicy})">
+ <summary>
+ Overload : Send a CertificateVerify (signature over the current log) message to the network stream
+ </summary>
+ <param name="st"> State of the current Handshake </param>
+ <param name="si"> Session info being negotiated in the next security context </param>
+ <param name="alg"> Signature algorithm allowed and usually provided by a Certificate Request </param>
+ <param name="skey"> Signature secret key associated to the algorithm </param>
+ <param name="ms"> Optional master secret that has to be provided to compute the log if protocol version is SSL3 </param>
+ <param name="fp"> Optional fragmentation policy at the record level </param>
+ <returns> Updated state * Certificate Verify message </returns>
+</member>
+<member name="M:FlexTLS.FlexCertificateVerify.FlexCertificateVerify.receive(FlexTLS.FlexTypes.state,TLSInfo.SessionInfo,Microsoft.FSharp.Collections.FSharpList{System.Tuple{TLSConstants.sigAlg,TLSConstants.hashAlg}},Microsoft.FSharp.Core.FSharpOption{System.Boolean},Microsoft.FSharp.Core.FSharpOption{Bytes.bytes})">
+ <summary>
+ Receive a CertificateVerify message from the network stream and check the log on demand
+ </summary>
+ <param name="st"> State of the current Handshake </param>
+ <param name="si"> Session info being negotiated in the next security context </param>
+ <param name="algs"> Signature and hash algorithms allowed and usually provided by a Certificate Request </param>
+ <param name="ms"> Optional master secret that has to be provided to check the log if protocol version is SSL3 </param>
+ <returns> Updated state * Certificate Verify message </returns>
+</member>
+<member name="M:FlexTLS.FlexCertificateVerify.FlexCertificateVerify.receive(FlexTLS.FlexTypes.state,FlexTLS.FlexTypes.nextSecurityContext,Microsoft.FSharp.Collections.FSharpList{System.Tuple{TLSConstants.sigAlg,TLSConstants.hashAlg}},Microsoft.FSharp.Core.FSharpOption{System.Boolean})">
+ <summary>
+ Overload : Receive a CertificateVerify message from the network stream and check the log on demand
+ </summary>
+ <param name="st"> State of the current Handshake </param>
+ <param name="nsc"> Next security context to be updated </param>
+ <param name="algs"> Signature and hash algorithms allowed and usually provided by a Certificate Request </param>
+ <returns> Updated state * Certificate Verify message </returns>
+</member>
+<member name="M:FlexTLS.FlexCertificateVerify.FlexCertificateVerify.receive(FlexTLS.FlexTypes.state,FlexTLS.FlexTypes.nextSecurityContext,FlexTLS.FlexTypes.FCertificateRequest,Microsoft.FSharp.Core.FSharpOption{System.Boolean})">
+ <summary>
+ Overload : Receive a CertificateVerify message from the network stream and check the log on demand
+ </summary>
+ <param name="st"> State of the current Handshake </param>
+ <param name="nsc"> Next security context to be updated </param>
+ <param name="fcreq"> FCertificateRequest previously used in the handshake that contains allowed signature and hash algorithms </param>
+ <returns> Updated state * Certificate Verify message </returns>
+</member>
+<member name="M:FlexTLS.FlexCertificateVerify.FlexCertificateVerify.prepare(Bytes.bytes,TLSConstants.cipherSuite,TLSConstants.PreProtocolVersion,System.Tuple{TLSConstants.sigAlg,TLSConstants.hashAlg},Sig.skey,Bytes.bytes)">
+ <summary>
+ Prepare a CertificateVerify message that will not be sent to the network stream
+ </summary>
+ <param name="log"> Log of the current handshake </param>
+ <param name="cs"> Ciphersuite of the current Handshake </param>
+ <param name="pv"> Protocol version of the current Handshake </param>
+ <param name="alg"> Signature algorithm allowed and usually provided by a Certificate Request </param>
+ <param name="skey"> Signature secret key associated to the algorithm </param>
+ <param name="ms"> Master secret that has to be provided to compute the log if protocol version is SSL3 </param>
+ <returns> Certificate Verify bytes * Certificate Verify record </returns>
+</member>
+<member name="T:FlexTLS.FlexCertificateVerify.FlexCertificateVerify">
+ <summary>
+ Module receiving, sending and forwarding TLS Certificate Verify messages.
+ </summary>
+</member>
+<member name="M:FlexTLS.FlexClientHello.FlexClientHello.send(FlexTLS.FlexTypes.state,TLSConstants.PreProtocolVersion,Microsoft.FSharp.Collections.FSharpList{TLSConstants.cipherSuiteName},Microsoft.FSharp.Collections.FSharpList{TLSConstants.PreCompression},Bytes.bytes,Bytes.bytes,Microsoft.FSharp.Collections.FSharpList{TLSExtensions.clientExtension},Microsoft.FSharp.Core.FSharpOption{FlexTLS.FlexTypes.fragmentationPolicy})">
+ <summary>
+ Send ClientHello message to the network stream
+ </summary>
+ <param name="st"> State of the current Handshake </param>
+ <param name="fch"> Desired client hello </param>
+ <param name="cfg"> Desired config </param>
+ <param name="fp"> Optional fragmentation policy at the record level </param>
+ <returns> Updated state * Next security context in negotiation * FClientHello message record </returns>
+</member>
+<member name="M:FlexTLS.FlexClientHello.FlexClientHello.send(FlexTLS.FlexTypes.state,Microsoft.FSharp.Core.FSharpOption{FlexTLS.FlexTypes.FClientHello},Microsoft.FSharp.Core.FSharpOption{TLSInfo.config},Microsoft.FSharp.Core.FSharpOption{FlexTLS.FlexTypes.fragmentationPolicy})">
+ <summary>
+ Send ClientHello message to the network stream
+ </summary>
+ <param name="st"> State of the current Handshake </param>
+ <param name="fch"> Desired client hello </param>
+ <param name="cfg"> Desired config </param>
+ <param name="fp"> Optional fragmentation policy at the record level </param>
+ <returns> Updated state * Next security context in negotiation * FClientHello message record </returns>
+</member>
+<member name="M:FlexTLS.FlexClientHello.FlexClientHello.receive(FlexTLS.FlexTypes.state,Microsoft.FSharp.Core.FSharpOption{System.Boolean})">
+ <summary>
+ Receive a ClientHello message from the network stream
+ </summary>
+ <param name="st"> State of the current Handshake </param>
+ <param name="checkVD"> Flag to enable or ignore the check on the verify data if the renegotiation indication is in the client extension list </param>
+ <returns> Updated state * Next security context in negotiation * FClientHello message record </returns>
+</member>
+<member name="M:FlexTLS.FlexClientHello.FlexClientHello.prepare(TLSConstants.PreProtocolVersion,Microsoft.FSharp.Collections.FSharpList{TLSConstants.cipherSuiteName},Microsoft.FSharp.Collections.FSharpList{TLSConstants.PreCompression},Bytes.bytes,Bytes.bytes,Microsoft.FSharp.Collections.FSharpList{TLSExtensions.clientExtension})">
+ <summary>
+ Prepare ClientHello message bytes that will not be sent to the network stream
+ </summary>
+ <param name="cfg"> Desired config </param>
+ <param name="crand"> Client random value </param>
+ <param name="csid"> Client desired sid </param>
+ <param name="cExtL"> Client list of extension </param>
+ <returns> FClientHello message record </returns>
+</member>
+<member name="T:FlexTLS.FlexClientHello.FlexClientHello">
+ <summary>
+ Module receiving, sending and forwarding TLS Client Hello messages.
+ </summary>
+</member>
+<member name="M:FlexTLS.FlexClientHello.fillStateEpochInitPvIFIsEpochInit(FlexTLS.FlexTypes.state,FlexTLS.FlexTypes.FClientHello)">
+ <summary>
+ Update channel's Epoch Init Protocol version to the one chosen by the user if we are in an InitEpoch, else do nothing
+ </summary>
+ <param name="st"> State of the current Handshake </param>
+ <param name="fch"> Client hello message containing the desired protocol version </param>
+ <returns> Updated state of the handshake </returns>
+</member>
+<member name="M:FlexTLS.FlexClientHello.getSID(FlexTLS.FlexTypes.FClientHello)">
+ <summary>
+ Extract the session id from a FClientHello message record
+ </summary>
+ <param name="ch"> FClientHello message record </param>
+ <returns> Session ID, or an empty byte array if None</returns>
+</member>
+<member name="M:FlexTLS.FlexClientHello.getExt(FlexTLS.FlexTypes.FClientHello)">
+ <summary>
+ Extract the extension list from a FClientHello message record
+ </summary>
+ <param name="ch"> FClientHello message record </param>
+ <returns> List of client extensions </returns>
+</member>
+<member name="M:FlexTLS.FlexClientHello.getCompressions(FlexTLS.FlexTypes.FClientHello)">
+ <summary>
+ Extract the compression list from a FClientHello message record
+ </summary>
+ <param name="ch"> FClientHello message record </param>
+ <returns> List of client supported compressions </returns>
+</member>
+<member name="M:FlexTLS.FlexClientHello.getPV(FlexTLS.FlexTypes.FClientHello)">
+ <summary>
+ Extract the protocol version from a FClientHello message record
+ </summary>
+ <param name="ch"> FClientHello message record </param>
+ <returns> Protocol version </returns>
+</member>
+<member name="M:FlexTLS.FlexClientHello.getCiphersuites(FlexTLS.FlexTypes.FClientHello)">
+ <summary>
+ Extract the ciphersuites from a FClientHello message record
+ </summary>
+ <param name="ch"> FClientHello message record </param>
+ <returns> Ciphersuites </returns>
+</member>
+<member name="T:FlexTLS.FlexClientHello">
+ <summary>
+ Module receiving, sending and forwarding TLS Client Hello messages.
+ </summary>
+</member>
+<member name="M:FlexTLS.FlexClientKeyExchange.FlexClientKeyExchange.sendRSA(FlexTLS.FlexTypes.state,Microsoft.FSharp.Collections.FSharpList{Bytes.bytes},TLSConstants.PreProtocolVersion,Microsoft.FSharp.Core.FSharpOption{Bytes.bytes},Microsoft.FSharp.Core.FSharpOption{FlexTLS.FlexTypes.fragmentationPolicy})">
+ <summary>
+ Send RSA ClientKeyExchange to the network stream
+ </summary>
+ <param name="st"> State of the current Handshake </param>
+ <param name="certl"> Server identification as list of certificates </param>
+ <param name="pv"> Protocol version required in the Client Hello of the current Handshake </param>
+ <param name="pms"> Optional Pre Master Secret to be sent instead of the real one </param>
+ <param name="fp"> Optional fragmentation policy at the record level </param>
+ <returns> Updated state * FClientKeyExchange message record </returns>
+</member>
+<member name="M:FlexTLS.FlexClientKeyExchange.FlexClientKeyExchange.sendRSA(FlexTLS.FlexTypes.state,FlexTLS.FlexTypes.nextSecurityContext,TLSConstants.PreProtocolVersion,Microsoft.FSharp.Core.FSharpOption{FlexTLS.FlexTypes.fragmentationPolicy})">
+ <summary>
+ Overload : Send RSA ClientKeyExchange to the network stream,
+ compute the PMS, MS, KEYS and update the nextSecurityContext with the protocol version
+ </summary>
+ <param name="st"> State of the current Handshake </param>
+ <param name="nsc"> Next security context being negotiated </param>
+ <param name="pv"> Protocol version required in the Client Hello of the current Handshake </param>
+ <param name="fp"> Optional fragmentation policy at the record level </param>
+ <returns> Updated state * FClientKeyExchange message record </returns>
+</member>
+<member name="M:FlexTLS.FlexClientKeyExchange.FlexClientKeyExchange.sendRSA(FlexTLS.FlexTypes.state,FlexTLS.FlexTypes.nextSecurityContext,FlexTLS.FlexTypes.FClientHello,Microsoft.FSharp.Core.FSharpOption{FlexTLS.FlexTypes.fragmentationPolicy})">
+ <summary>
+ Send RSA ClientKeyExchange to the network stream,
+ compute the PMS, MS, KEYS and update the nextSecurityContext with the protocol version
+ </summary>
+ <param name="st"> State of the current Handshake </param>
+ <param name="nsc"> Next security context being negotiated </param>
+ <param name="fch"> Client hello containing the desired protocol version </param>
+ <param name="fp"> Optional fragmentation policy at the record level </param>
+ <returns> Updated state * FClientKeyExchange message record </returns>
+</member>
+<member name="M:FlexTLS.FlexClientKeyExchange.FlexClientKeyExchange.sendECDHE(FlexTLS.FlexTypes.state,FlexTLS.FlexTypes.kexECDH,Microsoft.FSharp.Core.FSharpOption{FlexTLS.FlexTypes.fragmentationPolicy})">
+ <summary>
+ Send ECDHE ClientKeyExchange to the network stream
+ </summary>
+ <param name="st"> State of the current Handshake </param>
+ <param name="kexecdh"> Key Exchange record containing necessary Elliptic Curve Diffie-Hellman parameters </param>
+ <param name="fp"> Optional fragmentation policy at the record level </param>
+ <returns> Updated state * FClientKeyExchange message record </returns>
+</member>
+<member name="M:FlexTLS.FlexClientKeyExchange.FlexClientKeyExchange.sendECDHE(FlexTLS.FlexTypes.state,FlexTLS.FlexTypes.nextSecurityContext,Microsoft.FSharp.Core.FSharpOption{FlexTLS.FlexTypes.fragmentationPolicy})">
+ <summary>
+ Overload : Send ECDHE ClientKeyExchange to the network stream
+ </summary>
+ <param name="st"> State of the current Handshake </param>
+ <param name="nsc"> Next security context being negotiated and containing the key exchange mechanism retreived from a previous server key exchange</param>
+ <param name="fp"> Optional fragmentation policy at the record level </param>
+ <returns> Updated state * Next security context * FClientKeyExchange message record </returns>
+</member>
+<member name="M:FlexTLS.FlexClientKeyExchange.FlexClientKeyExchange.sendECDHE(FlexTLS.FlexTypes.state,FlexTLS.FlexTypes.FServerKeyExchange,Microsoft.FSharp.Core.FSharpOption{FlexTLS.FlexTypes.nextSecurityContext},Microsoft.FSharp.Core.FSharpOption{FlexTLS.FlexTypes.fragmentationPolicy})">
+ <summary>
+ Overload : Send ECDHE ClientKeyExchange to the network stream
+ </summary>
+ <param name="st"> State of the current Handshake </param>
+ <param name="fske"> Server key exchange data necessary or a modified version </param>
+ <param name="fp"> Optional fragmentation policy at the record level </param>
+ <returns> Updated state * Next security context * FClientKeyExchange message record </returns>
+</member>
+<member name="M:FlexTLS.FlexClientKeyExchange.FlexClientKeyExchange.sendDHE(FlexTLS.FlexTypes.state,FlexTLS.FlexTypes.kexDH,Microsoft.FSharp.Core.FSharpOption{FlexTLS.FlexTypes.fragmentationPolicy})">
+ <summary>
+ Send DHE ClientKeyExchange to the network stream
+ </summary>
+ <param name="st"> State of the current Handshake </param>
+ <param name="kexdh"> Key Exchange record containing necessary Diffie-Hellman parameters </param>
+ <param name="fp"> Optional fragmentation policy at the record level </param>
+ <returns> Updated state * FClientKeyExchange message record </returns>
+</member>
+<member name="M:FlexTLS.FlexClientKeyExchange.FlexClientKeyExchange.sendDHE(FlexTLS.FlexTypes.state,FlexTLS.FlexTypes.nextSecurityContext,Microsoft.FSharp.Core.FSharpOption{FlexTLS.FlexTypes.fragmentationPolicy})">
+ <summary>
+ Overload : Send DHE ClientKeyExchange to the network stream
+ </summary>
+ <param name="st"> State of the current Handshake </param>
+ <param name="nsc"> Next security context being negotiated and containing the key exchange mechanism retrieved from a previous server key exchange</param>
+ <param name="fp"> Optional fragmentation policy at the record level </param>
+ <returns> Updated state * Next security context * FClientKeyExchange message record </returns>
+</member>
+<member name="M:FlexTLS.FlexClientKeyExchange.FlexClientKeyExchange.sendDHE(FlexTLS.FlexTypes.state,FlexTLS.FlexTypes.FServerKeyExchange,Microsoft.FSharp.Core.FSharpOption{FlexTLS.FlexTypes.nextSecurityContext},Microsoft.FSharp.Core.FSharpOption{FlexTLS.FlexTypes.fragmentationPolicy})">
+ <summary>
+ Overload : Send DHE ClientKeyExchange to the network stream
+ </summary>
+ <param name="st"> State of the current Handshake </param>
+ <param name="fske"> Server key exchange data necessary or a modified version </param>
+ <param name="fp"> Optional fragmentation policy at the record level </param>
+ <returns> Updated state * Next security context * FClientKeyExchange message record </returns>
+</member>
+<member name="M:FlexTLS.FlexClientKeyExchange.FlexClientKeyExchange.receiveRSA(FlexTLS.FlexTypes.state,Microsoft.FSharp.Collections.FSharpList{Bytes.bytes},TLSConstants.PreProtocolVersion,Microsoft.FSharp.Core.FSharpOption{System.Boolean},Microsoft.FSharp.Core.FSharpOption{RSAKey.sk})">
+ <summary>
+ Receive RSA ClientKeyExchange from the network stream
+ </summary>
+ <param name="st"> State of the current Handshake </param>
+ <param name="certl"> Server identification as list of certificates </param>
+ <param name="pv"> Protocol version required in the Client Hello of the current Handshake </param>
+ <param name="checkPV"> Optional check of the protocol version at decryption time </param>
+ <param name="sk"> Optional secret key to be used for decrypting in place of the current one </param>
+ <returns> Updated state * FClientKeyExchange message record </returns>
+</member>
+<member name="M:FlexTLS.FlexClientKeyExchange.FlexClientKeyExchange.receiveRSA(FlexTLS.FlexTypes.state,FlexTLS.FlexTypes.nextSecurityContext,TLSConstants.PreProtocolVersion,Microsoft.FSharp.Core.FSharpOption{System.Boolean},Microsoft.FSharp.Core.FSharpOption{RSAKey.sk})">
+ <summary>
+ Receive RSA ClientKeyExchange from the network stream
+ </summary>
+ <param name="st"> State of the current Handshake </param>
+ <param name="nsc"> Next security context being negotiated </param>
+ <param name="pv"> Protocol version required in the Client Hello of the current Handshake </param>
+ <param name="checkPV"> Optional check of the protocol version at decryption time </param>
+ <param name="sk"> Optional secret key to be used for decrypting in place of the current one </param>
+ <returns> Updated state * Updated next security context * FClientKeyExchange message record </returns>
+</member>
+<member name="M:FlexTLS.FlexClientKeyExchange.FlexClientKeyExchange.receiveRSA(FlexTLS.FlexTypes.state,FlexTLS.FlexTypes.nextSecurityContext,FlexTLS.FlexTypes.FClientHello,Microsoft.FSharp.Core.FSharpOption{System.Boolean},Microsoft.FSharp.Core.FSharpOption{RSAKey.sk})">
+ <summary>
+ Receive RSA ClientKeyExchange from the network stream
+ </summary>
+ <param name="st"> State of the current Handshake </param>
+ <param name="nsc"> Next security context being negotiated </param>
+ <param name="fch"> Client hello containing the desired protocol version when beginning the handshake </param>
+ <param name="checkPV"> Optional check of the protocol version at decryption time </param>
+ <param name="sk"> Optional secret key to be used for decrypting in place of the current one </param>
+ <returns> Updated state * Updated next security context * FClientKeyExchange message record </returns>
+</member>
+<member name="M:FlexTLS.FlexClientKeyExchange.FlexClientKeyExchange.receiveECDHE(FlexTLS.FlexTypes.state,FlexTLS.FlexTypes.kexECDH)">
+ <summary>
+ Receive ECDHE ClientKeyExchange from the network stream
+ </summary>
+ <param name="st"> State of the current Handshake </param>
+ <param name="kexecdh"> Key Exchange record containing EC Diffie-Hellman parameters </param>
+ <returns> Updated state * FClientKeyExchange message record </returns>
+</member>
+<member name="M:FlexTLS.FlexClientKeyExchange.FlexClientKeyExchange.receiveECDHE(FlexTLS.FlexTypes.state,FlexTLS.FlexTypes.nextSecurityContext)">
+ <summary>
+ Receive ECDHE ClientKeyExchange from the network stream
+ </summary>
+ <param name="st"> State of the current Handshake </param>
+ <param name="nsc"> Next security context being negotiated and containing the key exchange mechanism retreived from a previous server key exchange</param>
+ <returns> Updated state * Next security context * FClientKeyExchange message record </returns>
+</member>
+<member name="M:FlexTLS.FlexClientKeyExchange.FlexClientKeyExchange.receiveECDHE(FlexTLS.FlexTypes.state,FlexTLS.FlexTypes.FServerKeyExchange,Microsoft.FSharp.Core.FSharpOption{FlexTLS.FlexTypes.nextSecurityContext})">
+ <summary>
+ Receive ECDHE ClientKeyExchange from the network stream
+ </summary>
+ <param name="st"> State of the current Handshake </param>
+ <param name="fske"> Previously sent Server Key exchange containing kex record and ECDH parameters </param>
+ <param name="nsc"> Next security context being negotiated and containing the key exchange mechanism retreived from a previous server key exchange</param>
+ <returns> Updated state * Next security context * FClientKeyExchange message record </returns>
+</member>
+<member name="M:FlexTLS.FlexClientKeyExchange.FlexClientKeyExchange.receiveDHE(FlexTLS.FlexTypes.state,FlexTLS.FlexTypes.kexDH)">
+ <summary>
+ Receive DHE ClientKeyExchange from the network stream
+ </summary>
+ <param name="st"> State of the current Handshake </param>
+ <param name="kexdh"> Key Exchange record containing Diffie-Hellman parameters </param>
+ <returns> Updated state * FClientKeyExchange message record </returns>
+</member>
+<member name="M:FlexTLS.FlexClientKeyExchange.FlexClientKeyExchange.receiveDHE(FlexTLS.FlexTypes.state,FlexTLS.FlexTypes.nextSecurityContext)">
+ <summary>
+ Receive DHE ClientKeyExchange from the network stream
+ </summary>
+ <param name="st"> State of the current Handshake </param>
+ <param name="nsc"> Next security context being negotiated and containing the key exchange mechanism retrieved from a previous server key exchange</param>
+ <returns> Updated state * Next security context * FClientKeyExchange message record </returns>
+</member>
+<member name="M:FlexTLS.FlexClientKeyExchange.FlexClientKeyExchange.receiveDHE(FlexTLS.FlexTypes.state,FlexTLS.FlexTypes.FServerKeyExchange,Microsoft.FSharp.Core.FSharpOption{FlexTLS.FlexTypes.nextSecurityContext})">
+ <summary>
+ Receive DHE ClientKeyExchange from the network stream
+ </summary>
+ <param name="st"> State of the current Handshake </param>
+ <param name="fske"> Previously sent Server Key exchange containing kex record and DH parameters </param>
+ <param name="nsc"> Next security context being negotiated and containing the key exchange mechanism retrieved from a previous server key exchange</param>
+ <returns> Updated state * Next security context * FClientKeyExchange message record </returns>
+</member>
+<member name="M:FlexTLS.FlexClientKeyExchange.FlexClientKeyExchange.prepareRSA(FlexTLS.FlexTypes.state,Microsoft.FSharp.Collections.FSharpList{Bytes.bytes},TLSConstants.PreProtocolVersion,Microsoft.FSharp.Core.FSharpOption{Bytes.bytes})">
+ <summary>
+ Prepare RSA ClientKeyExchange but will not send it to the network stream
+ </summary>
+ <param name="st"> State of the current Handshake </param>
+ <param name="certl"> Server identification as list of certificates </param>
+ <param name="pv"> Protocol version required in the Client Hello of the current Handshake </param>
+ <param name="pms"> Optional Pre Master Secret to be prepared instead of the real one // BB : ?? </param>
+ <returns> FClientKeyExchange bytes * Updated state * FClientKeyExchange message record </returns>
+</member>
+<member name="M:FlexTLS.FlexClientKeyExchange.FlexClientKeyExchange.prepareRSA(FlexTLS.FlexTypes.state,FlexTLS.FlexTypes.nextSecurityContext,TLSConstants.PreProtocolVersion)">
+ <summary>
+ Prepare RSA ClientKeyExchange but will not send it to the network stream
+ </summary>
+ <param name="st"> State of the current Handshake </param>
+ <param name="nsc"> Next security context being negotiated </param>
+ <param name="pv"> Protocol version required in the Client Hello of the current Handshake </param>
+ <returns> FClientKeyExchange bytes * Updated state * FClientKeyExchange message record </returns>
+</member>
+<member name="M:FlexTLS.FlexClientKeyExchange.FlexClientKeyExchange.prepareRSA(FlexTLS.FlexTypes.state,FlexTLS.FlexTypes.nextSecurityContext,FlexTLS.FlexTypes.FClientHello)">
+ <summary>
+ Prepare RSA ClientKeyExchange but will not send it to the network stream
+ </summary>
+ <param name="st"> State of the current Handshake </param>
+ <param name="nsc"> Next security context being negotiated </param>
+ <param name="fch"> Client hello containing the desired protocol version </param>
+ <returns> FClientKeyExchange bytes * Updated state * FClientKeyExchange message record </returns>
+</member>
+<member name="M:FlexTLS.FlexClientKeyExchange.FlexClientKeyExchange.prepareECDHE(FlexTLS.FlexTypes.kexECDH)">
+ <summary>
+ Prepare ECDHE ClientKeyExchange bytes but will not send it to the network stream
+ </summary>
+ <param name="kexecdh"> Key Exchange record containing necessary Elliptic Curve Diffie-Hellman parameters </param>
+ <returns> FClientKeyExchange message bytes * FClientKeyExchange record * </returns>
+</member>
+<member name="M:FlexTLS.FlexClientKeyExchange.FlexClientKeyExchange.prepareDHE(FlexTLS.FlexTypes.kexDH)">
+ <summary>
+ Prepare DHE ClientKeyExchange bytes but will not send it to the network stream
+ </summary>
+ <param name="kexdh"> Key Exchange record containing necessary Diffie-Hellman parameters </param>
+ <returns> FClientKeyExchange message bytes * FClientKeyExchange record * </returns>
+</member>
+<member name="T:FlexTLS.FlexClientKeyExchange.FlexClientKeyExchange">
+ <summary>
+ Module receiving, sending and forwarding TLS Client Key Exchange messages.
+ </summary>
+</member>
+<member name="M:FlexTLS.FlexClientKeyExchange.installSessionHash(TLSInfo.SessionInfo,Bytes.bytes)">
+ <summary>
+ Computes the session hash and installs it in the given session info
+ </summary>
+ <param name="si">The current session info</param>
+ <param name="log">the current log</param>
+ <returns> The session info with the updated session_hash field </returns>
+</member>
+<member name="M:FlexTLS.FlexClientKeyExchange.defaultKey(Microsoft.FSharp.Core.FSharpOption{RSAKey.sk},Microsoft.FSharp.Collections.FSharpList{Bytes.bytes})">
+ <summary>
+ Retrieve certificate and private key associated to a certificate list
+ </summary>
+ <param name="osk"> Secret key option </param>
+ <param name="cfg"> Certificate list </param>
+ <returns> Secret key </returns>
+</member>
+<member name="T:FlexTLS.FlexClientKeyExchange">
+ <summary>
+ Module receiving, sending and forwarding TLS Client Key Exchange messages.
+ </summary>
+</member>
+<member name="M:FlexTLS.FlexClientKeyShare.FlexClientKeyShare.send(FlexTLS.FlexTypes.state,Microsoft.FSharp.Collections.FSharpList{HandshakeMessages.tls13kex},Microsoft.FSharp.Core.FSharpOption{FlexTLS.FlexTypes.fragmentationPolicy})">
+ <summary>
+ EXPERIMENTAL TLS 1.3 Send DHE FClientKeyShare to the network stream
+ </summary>
+ <param name="st"> State of the current Handshake </param>
+ <param name="kexl"> Key Exchange record containing necessary Diffie-Hellman parameters </param>
+ <param name="fp"> Optional fragmentation policy at the record level </param>
+ <returns> Updated state * Key Exchange offer list * FClientKeyShare message record </returns>
+</member>
+<member name="M:FlexTLS.FlexClientKeyShare.FlexClientKeyShare.send(FlexTLS.FlexTypes.state,Microsoft.FSharp.Core.FSharpOption{FlexTLS.FlexTypes.nextSecurityContext},Microsoft.FSharp.Core.FSharpOption{FlexTLS.FlexTypes.fragmentationPolicy})">
+ <summary>
+ EXPERIMENTAL TLS 1.3 Send DHE FClientKeyShare to the network stream
+ </summary>
+ <param name="st"> State of the current Handshake </param>
+ <param name="nsc"> Next security context being negotiated </param>
+ <param name="fp"> Optional fragmentation policy at the record level </param>
+ <returns> Updated state * Updated next security context * FClientKeyShare message record </returns>
+</member>
+<member name="M:FlexTLS.FlexClientKeyShare.FlexClientKeyShare.receive(FlexTLS.FlexTypes.state,FlexTLS.FlexTypes.nextSecurityContext)">
+ <summary>
+ EXPERIMENTAL TLS 1.3 Receive DHE FClientKeyShare from the network stream
+ </summary>
+ <param name="st"> State of the current Handshake </param>
+ <returns> Updated state * FClientKeyShare message record </returns>
+</member>
+<member name="T:FlexTLS.FlexClientKeyShare.FlexClientKeyShare">
+ <summary>
+ Module receiving, sending and forwarding TLS Client Key Share messages.
+ </summary>
+</member>
+<member name="M:FlexTLS.FlexConnection.FlexConnection.serverOpenTcpConnection(Tcp.TcpListener,System.String,Microsoft.FSharp.Core.FSharpOption{TLSConstants.PreProtocolVersion},Microsoft.FSharp.Core.FSharpOption{System.Int32})">
+ <summary>
+ Server role, accepts a tcp connection from a client
+ </summary>
+ <param name="l"> Socket listener </param>
+ <param name="cn"> Common name </param>
+ <param name="pv"> Optional protocol version required to generate randomness </param>
+ <returns> Updated state * Updated config </returns>
+</member>
+<member name="M:FlexTLS.FlexConnection.FlexConnection.serverOpenTcpConnection(System.String,Microsoft.FSharp.Core.FSharpOption{System.String},Microsoft.FSharp.Core.FSharpOption{System.Int32},Microsoft.FSharp.Core.FSharpOption{TLSConstants.PreProtocolVersion},Microsoft.FSharp.Core.FSharpOption{System.Int32})">
+ <summary>
+ Server role, open a port and wait for a tcp connection from a client
+ </summary>
+ <param name="address"> Binding address or domain name (string) </param>
+ <param name="cn"> Optional common name </param>
+ <param name="port"> Optional port number </param>
+ <param name="pv"> Optional protocol version required to generate randomness </param>
+ <returns> Updated state * Updated config </returns>
+</member>
+<member name="M:FlexTLS.FlexConnection.FlexConnection.passthrough(Tcp.NetworkStream,Tcp.NetworkStream)">
+ <summary>
+ Passthrough function at the network stream level
+ </summary>
+ <param name="a"> Network stream A </param>
+ <param name="b"> Network stream B </param>
+</member>
+<member name="M:FlexTLS.FlexConnection.FlexConnection.init(TLSInfo.preRole,Tcp.NetworkStream,Microsoft.FSharp.Core.FSharpOption{TLSConstants.PreProtocolVersion})">
+ <summary>
+ Initiate a connection either as a Client or a Server and create a global state
+ </summary>
+ <param name="role"> Behavior set as Client or Server </param>
+ <param name="ns"> Network stream </param>
+ <param name="pv"> Optional protocol version required to generate randomness </param>
+ <returns> Global state of the handshake </returns>
+</member>
+<member name="M:FlexTLS.FlexConnection.FlexConnection.clientOpenTcpConnection(System.String,Microsoft.FSharp.Core.FSharpOption{System.String},Microsoft.FSharp.Core.FSharpOption{System.Int32},Microsoft.FSharp.Core.FSharpOption{TLSConstants.PreProtocolVersion},Microsoft.FSharp.Core.FSharpOption{System.Int32})">
+ <summary>
+ Client role, open a tcp connection to a server
+ </summary>
+ <param name="address"> Binding address or domain name </param>
+ <param name="cn"> Optional common name </param>
+ <param name="port"> Optional port number </param>
+ <param name="pv"> Optional protocol version required to generate randomness </param>
+ <returns> Updated state * Updated config </returns>
+</member>
+<member name="M:FlexTLS.FlexConnection.FlexConnection.asyncForward(System.IO.Stream,System.IO.Stream)">
+ <summary>
+ Asynchronous forwarding of data from one string to another
+ </summary>
+ <param name="src"> Source network stream </param>
+ <param name="dst"> Destination network stream </param>
+</member>
+<member name="M:FlexTLS.FlexConnection.FlexConnection.MitmOpenTcpConnections(System.String,System.String,Microsoft.FSharp.Core.FSharpOption{System.String},Microsoft.FSharp.Core.FSharpOption{System.Int32},Microsoft.FSharp.Core.FSharpOption{TLSConstants.PreProtocolVersion},Microsoft.FSharp.Core.FSharpOption{System.String},Microsoft.FSharp.Core.FSharpOption{System.Int32},Microsoft.FSharp.Core.FSharpOption{TLSConstants.PreProtocolVersion})">
+ <summary>
+ Open two TCP connection to do MITM : Listen for a client and Connect to a server
+ </summary>
+ <param name="listen_address"> Listening address (Should be 0.0.0.0 locally) </param>
+ <param name="server_address"> Remote address </param>
+ <param name="listener_cn"> Optional common name of the attacker </param>
+ <param name="listener_port"> Optional port awaiting for connection </param>
+ <param name="listener_pv"> Optional protocol version required to generate randomness </param>
+ <param name="server_cn"> Optional common name of the server </param>
+ <param name="server_port"> Optional port number on which to connect to the server </param>
+ <param name="server_pv"> Optional protocol version required to generate randomness </param>
+</member>
+<member name="T:FlexTLS.FlexConnection.FlexConnection">
+ <summary>
+ Module handling of TCP connections and preparing TLS connections
+ </summary>
+</member>
+<member name="M:FlexTLS.FlexConstants.FlexConstants.names_of_cipherSuites(Microsoft.FSharp.Collections.FSharpList{TLSConstants.cipherSuite})">
+ <summary> Redefine TLSConstants ciphersuite name parsing to ignore SCSV ciphersuites </summary>
+</member>
+<member name="P:FlexTLS.FlexConstants.FlexConstants.sigAlgs_RSA">
+ <summary> Signature algorithms suitable for RSA ciphersuites </summary>
+</member>
+<member name="P:FlexTLS.FlexConstants.FlexConstants.sigAlgs_ALL">
+ <summary> All supported signature algorithms </summary>
+</member>
+<member name="P:FlexTLS.FlexConstants.FlexConstants.nullSessionInfo">
+ <summary> Null SessionInfo </summary>
+</member>
+<member name="P:FlexTLS.FlexConstants.FlexConstants.nullSecrets">
+ <summary> Null secrets </summary>
+</member>
+<member name="P:FlexTLS.FlexConstants.FlexConstants.nullNextSecurityContext">
+ <summary> Null next Security Context </summary>
+</member>
+<member name="P:FlexTLS.FlexConstants.FlexConstants.nullNegotiatedExtensions">
+ <summary>
+ A record that represents no negotiated extensions
+ </summary>
+</member>
+<member name="P:FlexTLS.FlexConstants.FlexConstants.nullKexECDH">
+ <summary> Default ECDH key exchange parameters, with default ECDH group and empty DH shares </summary>
+</member>
+<member name="P:FlexTLS.FlexConstants.FlexConstants.nullKexDH">
+ <summary> Default DH key exchange parameters, with default DH group and empty DH shares </summary>
+</member>
+<member name="P:FlexTLS.FlexConstants.FlexConstants.nullFServerKeyExchangeDHx">
+ <summary> Empty ServerKeyExchange message, for DH key exchange </summary>
+</member>
+<member name="P:FlexTLS.FlexConstants.FlexConstants.nullFServerHelloDone">
+ <summary> Empty FServerHelloDone message </summary>
+</member>
+<member name="P:FlexTLS.FlexConstants.FlexConstants.nullFServerHello">
+ <summary> Default ServerHello message </summary>
+ <remark>
+ Sending this message together with a filled ClientHello message
+ will perform some basic negotiation and send a valid ServerHello with
+ fresh server randomness.
+ </remarks>
+</member>
+<member name="P:FlexTLS.FlexConstants.FlexConstants.nullFHelloRequest">
+ <summary> Empty HelloRequest message </summary>
+</member>
+<member name="P:FlexTLS.FlexConstants.FlexConstants.nullFFinished">
+ <summary> Empty Finished message </summary>
+</member>
+<member name="P:FlexTLS.FlexConstants.FlexConstants.nullFClientKeyExchangeRSA">
+ <summary> Empty ClientKeyExchange message, for RSA key exchange </summary>
+</member>
+<member name="P:FlexTLS.FlexConstants.FlexConstants.nullFClientKeyExchangeDH">
+ <summary> Empty ClientKeyExchange message, for DH key exchange </summary>
+</member>
+<member name="P:FlexTLS.FlexConstants.FlexConstants.nullFClientHello">
+ <summary> Default ClientHello message </summary>
+ <remarks>
+ Sending this message will produce a client hello with
+ - Highest supported protocol version
+ - Fresh client randomness
+ - Empty session identifier
+ - Default ciphersuites and compression method
+ - All extensions enabled by the default configuration
+ </remarks>
+</member>
+<member name="P:FlexTLS.FlexConstants.FlexConstants.nullFChangeCipherSpecs">
+ <summary> Default ChangeCipherSpecs message </summary>
+</member>
+<member name="P:FlexTLS.FlexConstants.FlexConstants.nullFCertificateVerify">
+ <summary> Empty CertificateVerify message </summary>
+</member>
+<member name="P:FlexTLS.FlexConstants.FlexConstants.nullFCertificateRequest">
+ <summary> Empty CertificateRequest message </summary>
+</member>
+<member name="P:FlexTLS.FlexConstants.FlexConstants.nullFCertificate">
+ <summary> Empty Certificate message </summary>
+</member>
+<member name="P:FlexTLS.FlexConstants.FlexConstants.minECDHSize">
+ <summary> Default minimum accepted size for ECDH curve </summary>
+</member>
+<member name="P:FlexTLS.FlexConstants.FlexConstants.minDHSize">
+ <summary> Default minimum accepted size for DH parameters </summary>
+</member>
+<member name="P:FlexTLS.FlexConstants.FlexConstants.dhdb">
+ <summary> Default DH database name </summary>
+</member>
+<member name="P:FlexTLS.FlexConstants.FlexConstants.defaultTLS13group">
+ <summary> Diffie Hellman default negotiated group (TLS 1.3) </summary>
+</member>
+<member name="P:FlexTLS.FlexConstants.FlexConstants.defaultTCPPort">
+ <summary> Default TCP port, used to listen or to connect to </summary>
+</member>
+<member name="P:FlexTLS.FlexConstants.FlexConstants.defaultTCPMaliciousPort">
+ <summary> Default TCP port for malicious server, used to listen </summary>
+</member>
+<member name="P:FlexTLS.FlexConstants.FlexConstants.defaultRSACiphersuites">
+ <summary> Default RSA ciphersuites </summary>
+</member>
+<member name="P:FlexTLS.FlexConstants.FlexConstants.defaultProtocolVersion">
+ <summary> Default protocol version </summary>
+</member>
+<member name="P:FlexTLS.FlexConstants.FlexConstants.defaultFragmentationPolicy">
+ <summary> Default fragmentation policy </summary>
+</member>
+<member name="P:FlexTLS.FlexConstants.FlexConstants.defaultECDHcurve">
+ <summary> Elliptic Curve Diffie Hellman default curve and associated compression </summary>
+</member>
+<member name="P:FlexTLS.FlexConstants.FlexConstants.defaultECDHParams">
+ <summary> Default ECDH params </summary>
+</member>
+<member name="P:FlexTLS.FlexConstants.FlexConstants.defaultECDHECiphersuites">
+ <summary> Default ECDHE ciphersuites </summary>
+</member>
+<member name="P:FlexTLS.FlexConstants.FlexConstants.defaultDHParams">
+ <summary> Default DH params </summary>
+</member>
+<member name="P:FlexTLS.FlexConstants.FlexConstants.defaultDHECiphersuites">
+ <summary> Default DHE ciphersuites </summary>
+</member>
+<member name="T:FlexTLS.FlexConstants.FlexConstants">
+ <summary>
+ Module for constant values and initialization values
+ </summary>
+</member>
+<member name="M:FlexTLS.FlexFinished.FlexFinished.send(FlexTLS.FlexTypes.state,Bytes.bytes,Microsoft.FSharp.Core.FSharpOption{FlexTLS.FlexTypes.fragmentationPolicy})">
+ <summary>
+ Send a Finished message from the network stream and check the verify_data on demand
+ </summary>
+ <param name="st"> State of the current Handshake </param>
+ <param name="verify_data"> Verify_data that will be used </param>
+ <param name="fp"> Optional fragmentation policy at the record level </param>
+ <returns> Updated state * FFinished message record </returns>
+</member>
+<member name="M:FlexTLS.FlexFinished.FlexFinished.send(FlexTLS.FlexTypes.state,FlexTLS.FlexTypes.nextSecurityContext,TLSInfo.preRole,Microsoft.FSharp.Core.FSharpOption{FlexTLS.FlexTypes.fragmentationPolicy})">
+ <summary>
+ Send a Finished message from the verify_data and send it to the network stream
+ </summary>
+ <param name="st"> State of the current Handshake </param>
+ <param name="role"> Role necessary to compute the verify data </param>
+ <param name="fp"> Optional fragmentation policy at the record level </param>
+ <returns> Updated state * FFinished message record </returns>
+</member>
+<member name="M:FlexTLS.FlexFinished.FlexFinished.send(FlexTLS.FlexTypes.state,FlexTLS.FlexTypes.FFinished,Microsoft.FSharp.Core.FSharpOption{FlexTLS.FlexTypes.fragmentationPolicy})">
+ <summary>
+ Overload : Send a Finished message from the network stream and check the verify_data on demand
+ </summary>
+ <param name="st"> State of the current Handshake </param>
+ <param name="ff"> Optional finished message record including the payload to be used </param>
+ <param name="fp"> Optional fragmentation policy at the record level </param>
+ <returns> Updated state * FFinished message record </returns>
+</member>
+<member name="M:FlexTLS.FlexFinished.FlexFinished.receive(FlexTLS.FlexTypes.state,TLSConstants.PreProtocolVersion,TLSConstants.cipherSuite,Microsoft.FSharp.Core.FSharpOption{Bytes.bytes})">
+ <summary>
+ Receive a Finished message from the network stream and check the verify_data on demand
+ </summary>
+ <param name="st"> State of the current Handshake </param>
+ <param name="pv"> Protocol Version </param>
+ <param name="cs"> Ciphersuite </param>
+ <param name="verify_data"> Optional verify_data to compare to received payload </param>
+ <returns> Updated state * FFinished message record </returns>
+</member>
+<member name="M:FlexTLS.FlexFinished.FlexFinished.receive(FlexTLS.FlexTypes.state,FlexTLS.FlexTypes.nextSecurityContext,Microsoft.FSharp.Core.FSharpOption{TLSInfo.preRole})">
+ <summary>
+ Receive a Finished message from the network stream and check the verify_data on demand
+ </summary>
+ <param name="st"> State of the current Handshake </param>
+ <param name="nsc"> NextSecurityContext embedding required parameters </param>
+ <param name="role"> Optional role used to compute an eventual verify data </param>
+ <returns> Updated state * FFinished message record </returns>
+</member>
+<member name="M:FlexTLS.FlexFinished.FlexFinished.prepare(Bytes.bytes)">
+ <summary>
+ Prepare a Finished message from the verify_data that will not be sent to the network
+ </summary>
+ <param name="verify_data"> Verify_data that will be used to generate the finished message </param>
+ <returns> Finished message bytes *  FFinished message record </returns>
+</member>
+<member name="T:FlexTLS.FlexFinished.FlexFinished">
+ <summary>
+ Module receiving, sending and forwarding TLS Finished messages.
+ </summary>
+</member>
+<member name="M:FlexTLS.FlexHandshake.FlexHandshake.send(FlexTLS.FlexTypes.state,Microsoft.FSharp.Core.FSharpOption{Bytes.bytes},Microsoft.FSharp.Core.FSharpOption{FlexTLS.FlexTypes.fragmentationPolicy})">
+ <summary>
+ Send an Handshake message to the network stream
+ </summary>
+ <param name="st"> State of the current Handshake </param>
+ <param name="payload"> Optional Data bytes to send as en handshake message. None will send the handshake buffer </param>
+ <param name="fp"> Optional fragmentation policy applied to the message </param>
+ <returns> Updated state </returns>
+</member>
+<member name="M:FlexTLS.FlexHandshake.FlexHandshake.receive(FlexTLS.FlexTypes.state)">
+ <summary>
+ Get an Handshake message from a network stream and manage buffering
+ </summary>
+ <param name="st"> State of the current Handshake </param>
+ <returns> Updated state * PreHandshakeType * payload * full message * remainder of the buffer </returns>
+</member>
+<member name="M:FlexTLS.FlexHandshake.FlexHandshake.parseHSMessage(Bytes.bytes)">
+ <summary>
+ Parse a Handshake message from a buffer and leave the remaining data in the buffer
+ </summary>
+ <param name="buf"> Buffer containing handshake message(s) </param>
+ <returns> PreHandshakeType * payload * full message * remainder of the buffer </returns>
+</member>
+<member name="M:FlexTLS.FlexHandshake.FlexHandshake.forward(FlexTLS.FlexTypes.state,FlexTLS.FlexTypes.state)">
+ <summary>
+ Forward an Handshake message from a network stream without buffering anything
+ </summary>
+ <param name="stin"> State of the current Handshake on the incoming side </param>
+ <param name="stout"> State of the current Handshake on the outgoing side </param>
+ <param name="fp"> Optional fragmentation policy applied to the message </param>
+ <returns> Updated incoming state * Updated outgoing state * forwarded handshake message bytes </returns>
+</member>
+<member name="T:FlexTLS.FlexHandshake.FlexHandshake">
+ <summary>
+ Module receiving, sending and forwarding TLS handshake messages.
+ </summary>
+</member>
+<member name="M:FlexTLS.FlexHelloRequest.FlexHelloRequest.send(FlexTLS.FlexTypes.state,Microsoft.FSharp.Core.FSharpOption{FlexTLS.FlexTypes.fragmentationPolicy})">
+ <summary>
+ Send a HelloRequest message to the network stream
+ </summary>
+ <param name="st"> State of the current Handshake </param>
+ <param name="fp"> Optional fragmentation policy applied to the message </param>
+ <returns> Updated state * next security context * FHelloRequest message record </returns>
+</member>
+<member name="M:FlexTLS.FlexHelloRequest.FlexHelloRequest.receive(FlexTLS.FlexTypes.state)">
+ <summary>
+ Receive a HelloRequest message from the network stream
+ </summary>
+ <param name="st"> State of the current Handshake </param>
+ <returns> Updated state * FHelloRequest message record </returns>
+</member>
+<member name="M:FlexTLS.FlexHelloRequest.FlexHelloRequest.prepare">
+ <summary>
+ Prepare a HelloRequest message that will not be sent
+ </summary>
+ <param name="st"> State of the current Handshake </param>
+ <returns> FHelloRequest message bytes * Updated state * next security context * FHelloRequest message record </returns>
+</member>
+<member name="T:FlexTLS.FlexHelloRequest.FlexHelloRequest">
+ <summary>
+ Module receiving, sending and forwarding TLS Hello Request messages.
+ </summary>
+</member>
+<member name="M:FlexTLS.FlexRecord.FlexRecord.send_raw(Tcp.NetworkStream,TLSConstants.preContentType,TLSConstants.PreProtocolVersion,Bytes.bytes,Microsoft.FSharp.Core.FSharpOption{FlexTLS.FlexTypes.fragmentationPolicy})">
+ <summary>
+ Encapsulate the given payload with a record header; does not perform encryption.
+ </summary>
+ <param name="ns"> Network stream </param>
+ <param name="ct"> Content type of the fragment </param>
+ <param name="pv"> Protocol Version of the fragment </param>
+ <param name="payload"> Data to encrypt </param>
+ <param name="fp"> Optional fragmentation policy applied to the message </param>
+ <returns> Remaining bytes </returns>
+</member>
+<member name="M:FlexTLS.FlexRecord.FlexRecord.send(Tcp.NetworkStream,TLSInfo.preEpoch,Record.ConnectionState,TLSConstants.preContentType,Bytes.bytes,Microsoft.FSharp.Core.FSharpOption{TLSConstants.PreProtocolVersion},Microsoft.FSharp.Core.FSharpOption{FlexTLS.FlexTypes.fragmentationPolicy})">
+ <summary>
+ Send data over the network after encrypting a record depending on the fragmentation policy
+ </summary>
+ <param name="ns"> Network stream </param>
+ <param name="e"> Epoch to use for encryption </param>
+ <param name="k"> Record connection state to use </param>
+ <param name="ct"> Content type of the fragment </param>
+ <param name="payload"> Data to encrypt </param>
+ <param name="epoch_init_pv"> Optional Protocol version set for the Initial epoch </param>
+ <param name="fp"> Optional fragmentation policy applied to the message </param>
+ <returns> Updated outgoing record state * remainder of the plain data </returns>
+</member>
+<member name="M:FlexTLS.FlexRecord.FlexRecord.send(FlexTLS.FlexTypes.state,TLSConstants.preContentType,Microsoft.FSharp.Core.FSharpOption{FlexTLS.FlexTypes.fragmentationPolicy})">
+ <summary>
+ Send data picked from a chosen CT buffer over the network after encrypting it and according to the fragmentation policy
+ </summary>
+ <param name="st"> State of the current Handshake </param>
+ <param name="ct"> Content type of the fragment </param>
+ <param name="fp"> Optional fragmentation policy applied to the message </param>
+ <returns> Updated outgoing record state </returns>
+ <remarks> We leave the remainder in the buffer </remarks>
+</member>
+<member name="M:FlexTLS.FlexRecord.FlexRecord.receive(FlexTLS.FlexTypes.state)">
+ <summary>
+ Receive a fragment by reading a header and a payload from the network stream
+ </summary>
+ <param name="st"> State of the current Handshake </param>
+ <returns> State * ContentType * ProtocolVersion * Lenght of the record payload * Fragment header bytes * Fragment payload bytes </returns>
+</member>
+<member name="M:FlexTLS.FlexRecord.FlexRecord.parseFragmentHeader(FlexTLS.FlexTypes.state)">
+ <summary>
+ Read a record fragment header to get ContentType, ProtocolVersion and Length of the fragment
+ </summary>
+ <param name="st"> State of the current Handshake </param>
+ <returns> ContentType * ProtocolVersion * Length * Header bytes </returns>
+</member>
+<member name="M:FlexTLS.FlexRecord.FlexRecord.getFragmentContent(FlexTLS.FlexTypes.state,TLSConstants.preContentType,System.Int32)">
+ <summary>
+ Get N bytes from the network stream and decrypts it as a fragment
+ </summary>
+ <param name="st"> State of the current Handshake </param>
+ <param name="ct"> Content type of the fragment </param>
+ <param name="len"> Length of the fragment </param>
+ <returns> Updated state (reading side) * decrypted plaintext </returns>
+</member>
+<member name="M:FlexTLS.FlexRecord.FlexRecord.forward(FlexTLS.FlexTypes.state,FlexTLS.FlexTypes.state,Microsoft.FSharp.Core.FSharpOption{FlexTLS.FlexTypes.fragmentationPolicy})">
+ <summary>
+ Forward a record
+ </summary>
+ <param name="stin"> State of the current Handshake on the incoming side </param>
+ <param name="stout"> State of the current Handshake on the outgoing side </param>
+ <param name="fp"> Optional fragmentation policy applied to the message </param>
+ <returns> Updated incoming state * Updated outgoing state * forwarded record bytes </returns>
+</member>
+<member name="M:FlexTLS.FlexRecord.FlexRecord.encrypt(TLSInfo.preEpoch,TLSConstants.PreProtocolVersion,Record.ConnectionState,TLSConstants.preContentType,Bytes.bytes)">
+ <summary>
+ Encrypt data depending on the record connection state
+ </summary>
+ <param name="e"> Epoch to use for encryption </param>
+ <param name="pv"> Protocol version to use </param>
+ <param name="k"> Record connection state to use </param>
+ <param name="ct"> Content type of the fragment </param>
+ <param name="payload"> Data to encrypt </param>
+ <returns> Updated incoming record state * ciphertext </returns>
+</member>
+<member name="T:FlexTLS.FlexRecord.FlexRecord">
+ <summary>
+ Module receiving, sending and forwarding and eventually encrypting TLS records.
+ </summary>
+</member>
+<member name="M:FlexTLS.FlexRecord.pickCTBuffer(FlexTLS.FlexTypes.channel,TLSConstants.preContentType)">
+ <summary>
+ Select a buffer to use depending on the content type
+ </summary>
+ <param name="channel"> Channel to extract buffer from </param>
+ <param name="ct"> Content type </param>
+ <returns> Buffer associated to the chosen content type </returns>
+</member>
+<member name="M:FlexTLS.FlexRecord.splitPayloadFP(Bytes.bytes,FlexTLS.FlexTypes.fragmentationPolicy)">
+ <summary>
+ Split any payload depending on the fragmentation size
+ </summary>
+ <param name="bytes"> Data bytes to be split </param>
+ <param name="fp"> Fragmentation policy </param>
+ <returns> Fragment of the chosen size * remaining unsplit data bytes </returns>
+</member>
+<member name="M:FlexTLS.FlexRecord.fs_of_fp(FlexTLS.FlexTypes.fragmentationPolicy)">
+ <summary>
+ Get fragment size depending on the fragmentation policy
+ </summary>
+ <param name="fp"> Fragmentation policy </param>
+ <returns> size of the fragment to be applied </returns>
+</member>
+<member name="T:FlexTLS.FlexRecord">
+ <summary>
+ Module receiving, sending and forwarding and eventually encrypts TLS records.
+ </summary>
+</member>
+<member name="M:FlexTLS.FlexSecrets.FlexSecrets.pms_to_ms(TLSInfo.SessionInfo,Bytes.bytes)">
+ <summary>
+ Generate the MasterSecret from the PreMasterSecret
+ </summary>
+ <param name="pms"> PreMasterSecret bytes </param>
+ <returns>  MasterSecret bytes </returns>
+</member>
+<member name="M:FlexTLS.FlexSecrets.FlexSecrets.ms_to_keys(TLSInfo.preEpoch,TLSInfo.preEpoch,TLSInfo.preRole,Bytes.bytes)">
+ <summary>
+ Generate all encryption keys from the MasterSecret and swap them in the proper order using the role
+ </summary>
+ <param name="er"> Next reading epoch </param>
+ <param name="ew"> Next writing epoch </param>
+ <param name="role"> Behavior as client or Server </param>
+ <param name="ms"> MasterSecret bytes </param>
+ <returns>  Reading keys bytes * Writing keys bytes </returns>
+</member>
+<member name="M:FlexTLS.FlexSecrets.FlexSecrets.makeVerifyData(TLSInfo.SessionInfo,Bytes.bytes,TLSInfo.preRole,Bytes.bytes)">
+ <summary>
+ Compute verify_data from log and necessary informations
+ </summary>
+ <param name="si"> Next session info being negotiated </param>
+ <param name="ms"> MasterSecret bytes </param>
+ <param name="role"> Behavior as Client or Server </param>
+ <param name="log"> Log of the current Handshake messages </param>
+ <returns> Verify_data bytes </returns>
+</member>
+<member name="M:FlexTLS.FlexSecrets.FlexSecrets.kex_to_pms(FlexTLS.FlexTypes.kex)">
+ <summary>
+ Generate the PreMasterSecret from the key exchange parameters
+ </summary>
+ <param name="kex"> Key Exchange record </param>
+ <returns>  PreMasterSecret bytes </returns>
+</member>
+<member name="M:FlexTLS.FlexSecrets.FlexSecrets.fillSecrets(FlexTLS.FlexTypes.state,TLSInfo.preRole,FlexTLS.FlexTypes.nextSecurityContext)">
+ <summary>
+ Generate secrets from the Key Exchange data and fill the next security context.
+ It is assumed that the nsc.kex field is already set to the desired value.
+ Any user-provided value will not be overwritten; instead it will be used for secrets generation.
+ </summary>
+ <param name="st"> State of the current Handshake </param>
+ <param name="role"> Behavior as client or Server </param>
+ <param name="nsc"> Next security context being negotiated </param>
+ <returns> Updated next security context </returns>
+</member>
+<member name="T:FlexTLS.FlexSecrets.FlexSecrets">
+ <summary>
+ Module dealing with computations on secret data.
+ </summary>
+</member>
+<member name="M:FlexTLS.FlexSecrets.dh_leak(CommonDH.secret)">
+ <summary>
+ Leak a DH parameter from DH.secret abstract type to bytes
+ </summary>
+ <param name="x"> Abstract DH parameter </param>
+ <returns> DH parameter bytes </returns>
+</member>
+<member name="M:FlexTLS.FlexSecrets.dh_coerce(Bytes.bytes)">
+ <summary>
+ Coerce a DH parameter from bytes to DH.secret abstract type
+ </summary>
+ <param name="x"> Bytes of the DH parameter </param>
+ <returns> Abstract DH parameter </returns>
+</member>
+<member name="T:FlexTLS.FlexSecrets">
+ <summary>
+ Module dealing with computations on secret data.
+ </summary>
+</member>
+<member name="M:FlexTLS.FlexServerHello.FlexServerHello.send(FlexTLS.FlexTypes.state,TLSInfo.SessionInfo,Microsoft.FSharp.Collections.FSharpList{TLSExtensions.serverExtension},Microsoft.FSharp.Core.FSharpOption{FlexTLS.FlexTypes.fragmentationPolicy})">
+ <summary>
+ Send a ServerHello message to the network stream
+ </summary>
+ <param name="st"> State of the current Handshake </param>
+ <param name="si"> Session Info of the currently negotiated next security context </param>
+ <param name="fp"> Optional fragmentation policy at the record level </param>
+ <returns> Updated state * FServerHello message record </returns>
+</member>
+<member name="M:FlexTLS.FlexServerHello.FlexServerHello.send(FlexTLS.FlexTypes.state,TLSInfo.SessionInfo,TLSConstants.PreProtocolVersion,Microsoft.FSharp.Collections.FSharpList{TLSConstants.cipherSuiteName},Microsoft.FSharp.Collections.FSharpList{TLSConstants.PreCompression},Microsoft.FSharp.Collections.FSharpList{TLSExtensions.clientExtension},Microsoft.FSharp.Core.FSharpOption{FlexTLS.FlexTypes.FServerHello},Microsoft.FSharp.Core.FSharpOption{TLSInfo.config},Microsoft.FSharp.Core.FSharpOption{FlexTLS.FlexTypes.fragmentationPolicy})">
+ <summary>
+ Send a ServerHello message to the network stream
+ </summary>
+ <param name="st"> State of the current Handshake </param>
+ <param name="si"> Session Info of the currently negotiated next security context </param>
+ <param name="cextL"> Client extensions list </param>
+ <param name="cfg"> Optional Configuration of the server </param>
+ <param name="fp"> Optional fragmentation policy at the record level </param>
+ <returns> Updated state * Updated negotiated session information * FServerHello message record </returns>
+</member>
+<member name="M:FlexTLS.FlexServerHello.FlexServerHello.send(FlexTLS.FlexTypes.state,FlexTLS.FlexTypes.FClientHello,Microsoft.FSharp.Core.FSharpOption{FlexTLS.FlexTypes.nextSecurityContext},Microsoft.FSharp.Core.FSharpOption{FlexTLS.FlexTypes.FServerHello},Microsoft.FSharp.Core.FSharpOption{TLSInfo.config},Microsoft.FSharp.Core.FSharpOption{FlexTLS.FlexTypes.fragmentationPolicy})">
+ <summary>
+ Send a ServerHello message to the network stream
+ </summary>
+ <param name="st"> State of the current Handshake </param>
+ <param name="fch"> FClientHello message record containing client extensions </param>
+ <param name="nsc"> Optional Next security context being negotiated </param>
+ <param name="fsh"> Optional FServerHello message record </param>
+ <param name="cfg"> Optional Server configuration if differs from default </param>
+ <param name="fp"> Optional fragmentation policy at the record level </param>
+ <returns> Updated state * Updated next security context * FServerHello message record </returns>
+</member>
+<member name="M:FlexTLS.FlexServerHello.FlexServerHello.receive(FlexTLS.FlexTypes.state,Microsoft.FSharp.Collections.FSharpList{TLSExtensions.clientExtension},Microsoft.FSharp.Core.FSharpOption{System.Boolean},Microsoft.FSharp.Core.FSharpOption{System.Boolean})">
+ <summary>
+ Receive a ServerHello message from the network stream
+ </summary>
+ <param name="st"> State of the current Handshake </param>
+ <returns> Updated state * Updated next security context * FServerHello message record * Negotiated extensions </returns>
+</member>
+<member name="M:FlexTLS.FlexServerHello.FlexServerHello.receive(FlexTLS.FlexTypes.state,FlexTLS.FlexTypes.FClientHello,Microsoft.FSharp.Core.FSharpOption{FlexTLS.FlexTypes.nextSecurityContext},Microsoft.FSharp.Core.FSharpOption{System.Boolean},Microsoft.FSharp.Core.FSharpOption{System.Boolean})">
+ <summary>
+ Receive a ServerHello message from the network stream
+ </summary>
+ <param name="st"> State of the current Handshake </param>
+ <param name="fch"> FClientHello containing the client extensions </param>
+ <param name="nsc"> Optional Next security context being negotiated </param>
+ <returns> Updated state * Updated next security context * FServerHello message record </returns>
+</member>
+<member name="M:FlexTLS.FlexServerHello.FlexServerHello.prepare(TLSInfo.SessionInfo,Microsoft.FSharp.Collections.FSharpList{TLSExtensions.serverExtension})">
+ <summary>
+ Prepare a ServerHello message that will not be sent to the network stream
+ </summary>
+ <param name="st"> State of the current Handshake </param>
+ <param name="si"> Session Info of the currently negotiated next security context </param>
+ <param name="cextL"> Client extensions list </param>
+ <param name="cfg"> Optional Configuration of the server </param>
+ <param name="verify_datas"> Optional verify data for client and server in case of renegotiation </param>
+ <returns> Updated state * Updated negotiated session informations * FServerHello message record </returns>
+</member>
+<member name="T:FlexTLS.FlexServerHello.FlexServerHello">
+ <summary>
+ Module receiving, sending and forwarding TLS Server Hello messages.
+ </summary>
+</member>
+<member name="M:FlexTLS.FlexServerHello.fillStateEpochInitPvIFIsEpochInit(FlexTLS.FlexTypes.state,FlexTLS.FlexTypes.FServerHello)">
+ <summary>
+ Update channel's Epoch Init Protocol version to the one chosen by the user if we are in an InitEpoch, else do nothing
+ </summary>
+ <param name="st"> State of the current Handshake </param>
+ <param name="fsh"> FServerHello message record </param>
+ <returns> Updated state </returns>
+</member>
+<member name="M:FlexTLS.FlexServerHello.getSID(FlexTLS.FlexTypes.FServerHello)">
+ <summary>
+ Extract the session id from a FServerHello message record
+ </summary>
+ <param name="fsh"> FServerHello message record </param>
+ <returns> Session ID, or an empty byte array if None</returns>
+</member>
+<member name="M:FlexTLS.FlexServerHello.getExt(FlexTLS.FlexTypes.FServerHello)">
+ <summary>
+ Extract the extension list from a FServerHello message record
+ </summary>
+ <param name="fsh"> FServerHello message record </param>
+ <returns> List of server extensions </returns>
+</member>
+<member name="M:FlexTLS.FlexServerHello.getPV(FlexTLS.FlexTypes.FServerHello)">
+ <summary>
+ Extract the protocol version from a FServerHello message record
+ </summary>
+ <param name="fsh"> FServerHello message record </param>
+ <returns> Protocol version </returns>
+</member>
+<member name="M:FlexTLS.FlexServerHello.getCiphersuite(FlexTLS.FlexTypes.FServerHello)">
+ <summary>
+ Extract the ciphersuite from a FServerHello message record
+ </summary>
+ <param name="fsh"> FServerHello message record </param>
+ <returns> Ciphersuite </returns>
+</member>
+<member name="T:FlexTLS.FlexServerHello">
+ <summary>
+ Module receiving, sending and forwarding TLS Server Hello messages.
+ </summary>
+</member>
+<member name="M:FlexTLS.FlexServerHelloDone.FlexServerHelloDone.send(FlexTLS.FlexTypes.state,Microsoft.FSharp.Core.FSharpOption{FlexTLS.FlexTypes.fragmentationPolicy})">
+ <summary>
+ Send a ServerHelloDone message to the network stream
+ </summary>
+ <param name="st"> State of the current Handshake </param>
+ <param name="fp"> Optional fragmentation policy at the record level </param>
+ <returns> Updated state * FServerHelloDone message record </returns>
+</member>
+<member name="M:FlexTLS.FlexServerHelloDone.FlexServerHelloDone.receive(FlexTLS.FlexTypes.state)">
+ <summary>
+ Receive a ServerHelloDone message from the network stream
+ </summary>
+ <param name="st"> State of the current Handshake </param>
+ <returns> Updated state * FServerHelloDone message record </returns>
+</member>
+<member name="M:FlexTLS.FlexServerHelloDone.FlexServerHelloDone.prepare">
+ <summary>
+ Prepare ServerHelloDone message bytes that will not be sent to the network stream
+ </summary>
+ <param name="st"> State of the current Handshake </param>
+ <returns> FServerHelloDone message bytes * Updated state * FServerHelloDone message record </returns>
+</member>
+<member name="T:FlexTLS.FlexServerHelloDone.FlexServerHelloDone">
+ <summary>
+ Module receiving, sending and forwarding TLS Server Hello Done messages.
+ </summary>
+</member>
+<member name="M:FlexTLS.FlexServerKeyExchange.FlexServerKeyExchange.sendECDHE(FlexTLS.FlexTypes.state,FlexTLS.FlexTypes.kexECDH,Bytes.bytes,Bytes.bytes,TLSConstants.PreProtocolVersion,System.Tuple{TLSConstants.sigAlg,TLSConstants.hashAlg},Sig.skey,Microsoft.FSharp.Core.FSharpOption{FlexTLS.FlexTypes.fragmentationPolicy})">
+ <summary>
+ Send a ECDHE ServerKeyExchange message to the network stream
+ </summary>
+ <param name="st"> State of the current Handshake </param>
+ <param name="kexecdh"> Key Exchange record containing Elliptic Curve Diffie-Hellman parameters </param>
+ <param name="crand"> Client public randomness </param>
+ <param name="srand"> Server public randomness </param>
+ <param name="pv"> Protocol version negotiated </param>
+ <param name="sigAlg"> Signature algorithm allowed and usually provided by a Certificate Request </param>
+ <param name="sigKey"> Signature secret key associated to the algorithm </param>
+ <param name="fp"> Optional fragmentation policy at the record level </param>
+ <returns> Updated state * FServerKeyExchange message record </returns>
+</member>
+<member name="M:FlexTLS.FlexServerKeyExchange.FlexServerKeyExchange.sendECDHE(FlexTLS.FlexTypes.state,FlexTLS.FlexTypes.nextSecurityContext,Microsoft.FSharp.Core.FSharpOption{System.Tuple{System.Tuple{TLSConstants.sigAlg,TLSConstants.hashAlg},Sig.skey}},Microsoft.FSharp.Core.FSharpOption{FlexTLS.FlexTypes.fragmentationPolicy})">
+ <summary>
+ Send a ECDHE ServerKeyExchange message to the network stream
+ </summary>
+ <param name="st"> State of the current Handshake </param>
+ <param name="nsc"> Next security context being negotiated </param>
+ <param name="sigAlgAndKey"> Optional pair of Signature Algorithm and Signing key to use by force </param>
+ <param name="fp"> Optional fragmentation policy at the record level </param>
+ <returns> Updated state * FServerKeyExchange message record </returns>
+</member>
+<member name="M:FlexTLS.FlexServerKeyExchange.FlexServerKeyExchange.sendDHE(FlexTLS.FlexTypes.state,FlexTLS.FlexTypes.kexDH,Bytes.bytes,Bytes.bytes,TLSConstants.PreProtocolVersion,System.Tuple{TLSConstants.sigAlg,TLSConstants.hashAlg},Sig.skey,Microsoft.FSharp.Core.FSharpOption{FlexTLS.FlexTypes.fragmentationPolicy})">
+ <summary>
+ Send a DHE ServerKeyExchange message to the network stream
+ </summary>
+ <param name="st"> State of the current Handshake </param>
+ <param name="kexdh"> Key Exchange record containing Diffie-Hellman parameters </param>
+ <param name="crand"> Client public randomness </param>
+ <param name="srand"> Server public randomness </param>
+ <param name="pv"> Protocol version negotiated </param>
+ <param name="sigAlg"> Signature algorithm allowed and usually provided by a Certificate Request </param>
+ <param name="sigKey"> Signature secret key associated to the algorithm </param>
+ <param name="fp"> Optional fragmentation policy at the record level </param>
+ <returns> Updated state * FServerKeyExchange message record </returns>
+</member>
+<member name="M:FlexTLS.FlexServerKeyExchange.FlexServerKeyExchange.sendDHE(FlexTLS.FlexTypes.state,FlexTLS.FlexTypes.nextSecurityContext,Microsoft.FSharp.Core.FSharpOption{System.Tuple{System.Tuple{TLSConstants.sigAlg,TLSConstants.hashAlg},Sig.skey}},Microsoft.FSharp.Core.FSharpOption{FlexTLS.FlexTypes.fragmentationPolicy})">
+ <summary>
+ Send a DHE ServerKeyExchange message to the network stream
+ </summary>
+ <param name="st"> State of the current Handshake </param>
+ <param name="nsc"> Next security context being negotiated </param>
+ <param name="sigAlgAndKey"> Optional pair of Signature Algorithm and Signing key to use by force </param>
+ <param name="fp"> Optional fragmentation policy at the record level </param>
+ <returns> Updated state * FServerKeyExchange message record </returns>
+</member>
+<member name="M:FlexTLS.FlexServerKeyExchange.FlexServerKeyExchange.receiveECDHE(FlexTLS.FlexTypes.state,TLSConstants.PreProtocolVersion,TLSConstants.cipherSuite,Microsoft.FSharp.Core.FSharpOption{System.Int32})">
+ <summary>
+ Receive ECDHE ServerKeyExchange from the network stream
+ </summary>
+ <param name="st"> State of the current Handshake </param>
+ <param name="pv"> Protocol version negotiated </param>
+ <param name="cs"> Ciphersuite negotiated </param>
+ <param name="minECDHsize"> Optional Minimal sizes for Elliptic curve size parameters.
+     Currently, the check is not implemented
+ <returns> Updated state * FServerKeyExchange message record </returns>
+</member>
+<member name="M:FlexTLS.FlexServerKeyExchange.FlexServerKeyExchange.receiveECDHE(FlexTLS.FlexTypes.state,FlexTLS.FlexTypes.nextSecurityContext,Microsoft.FSharp.Core.FSharpOption{System.Boolean},Microsoft.FSharp.Core.FSharpOption{System.Tuple{System.Int32,System.Int32}})">
+ <summary>
+ Receive ECDHE ServerKeyExchange from the network stream
+ </summary>
+ <param name="st"> State of the current Handshake </param>
+ <param name="nsc"> Next security context being negotiated </param>
+ <param name="check_sig"> Optional check on the Server certificate chain </param>
+ <param name="minECDHsize"> Optional Minimal sizes for Elliptic curve size parameters.
+     Currently, the check is not implemented
+ <returns> Updated state * Updated next security context * FServerKeyExchange message record </returns>
+</member>
+<member name="M:FlexTLS.FlexServerKeyExchange.FlexServerKeyExchange.receiveDHE(FlexTLS.FlexTypes.state,TLSConstants.PreProtocolVersion,TLSConstants.cipherSuite,Microsoft.FSharp.Core.FSharpOption{System.Tuple{System.Int32,System.Int32}})">
+ <summary>
+ Receive DHE ServerKeyExchange from the network stream
+ </summary>
+ <param name="st"> State of the current Handshake </param>
+ <param name="pv"> Protocol version negotiated </param>
+ <param name="cs"> Ciphersuite negotiated </param>
+ <param name="minDHsize"> Optional Minimal sizes for DH parameters.
+    If provided, received DH parameters will be checked for validity and their size;
+    if not provided, no check at all will be performed on the received parameters </param>
+ <returns> Updated state * FServerKeyExchange message record </returns>
+</member>
+<member name="M:FlexTLS.FlexServerKeyExchange.FlexServerKeyExchange.receiveDHE(FlexTLS.FlexTypes.state,FlexTLS.FlexTypes.nextSecurityContext,Microsoft.FSharp.Core.FSharpOption{System.Boolean},Microsoft.FSharp.Core.FSharpOption{System.Tuple{System.Int32,System.Int32}})">
+ <summary>
+ Receive DHE ServerKeyExchange from the network stream
+ </summary>
+ <param name="st"> State of the current Handshake </param>
+ <param name="nsc"> Next security context being negotiated </param>
+ <param name="check_sig"> Optional check on the Server certificate chain </param>
+ <param name="minDHsize"> Optional Minimal sizes for DH parameters.
+    If provided, received DH parameters will be checked for validity and their size;
+    if not provided, no check at all will be performed on the received parameters </param>
+ <returns> Updated state * Updated next security context * FServerKeyExchange message record </returns>
+</member>
+<member name="M:FlexTLS.FlexServerKeyExchange.FlexServerKeyExchange.prepareECDHE(FlexTLS.FlexTypes.kexECDH,Bytes.bytes,Bytes.bytes,TLSConstants.PreProtocolVersion,System.Tuple{TLSConstants.sigAlg,TLSConstants.hashAlg},Sig.skey)">
+ <summary>
+ Prepare ECDHE ServerKeyExchange message bytes that will not be sent to the network stream
+ </summary>
+ <param name="st"> State of the current Handshake </param>
+ <param name="kexecdh"> Key Exchange record containing Diffie-Hellman parameters </param>
+ <param name="crand"> Client public randomness </param>
+ <param name="srand"> Server public randomness </param>
+ <param name="pv"> Protocol version negotiated </param>
+ <param name="sigAlg"> Signature algorithm allowed and usually provided by a Certificate Request </param>
+ <param name="sigKey"> Signature secret key associated to the algorithm </param>
+ <returns> FServerKeyExchange message bytes * Updated state * FServerKeyExchange message record </returns>
+</member>
+<member name="M:FlexTLS.FlexServerKeyExchange.FlexServerKeyExchange.prepareDHE(FlexTLS.FlexTypes.kexDH,Bytes.bytes,Bytes.bytes,TLSConstants.PreProtocolVersion,System.Tuple{TLSConstants.sigAlg,TLSConstants.hashAlg},Sig.skey)">
+ <summary>
+ Prepare DHE ServerKeyExchange message bytes that will not be sent to the network stream
+ </summary>
+ <param name="st"> State of the current Handshake </param>
+ <param name="kexdh"> Key Exchange record containing Diffie-Hellman parameters </param>
+ <param name="crand"> Client public randomness </param>
+ <param name="srand"> Server public randomness </param>
+ <param name="pv"> Protocol version negotiated </param>
+ <param name="sigAlg"> Signature algorithm allowed and usually provided by a Certificate Request </param>
+ <param name="sigKey"> Signature secret key associated to the algorithm </param>
+ <returns> FServerKeyExchange message bytes * Updated state * FServerKeyExchange message record </returns>
+</member>
+<member name="T:FlexTLS.FlexServerKeyExchange.FlexServerKeyExchange">
+ <summary>
+ Module receiving, sending and forwarding TLS Server Key Exchange messages.
+ </summary>
+</member>
+<member name="M:FlexTLS.FlexServerKeyExchange.fillecdh(FlexTLS.FlexTypes.kexECDH)">
+ <summary>
+ Fill kexECDH structure by eventually finishing computation of all Elliptic Curve Diffie Hellman parameters.
+ </summary>
+</member>
+<member name="M:FlexTLS.FlexServerKeyExchange.filldh(FlexTLS.FlexTypes.kexDH)">
+ <summary>
+ Fill kexDH structure by eventually finishing computation of all Diffie Hellman parameters.
+ </summary>
+</member>
+<member name="T:FlexTLS.FlexServerKeyExchange">
+ <summary>
+ Module receiving, sending and forwarding TLS Server Key Exchange messages.
+ </summary>
+</member>
+<member name="M:FlexTLS.FlexServerKeyShare.FlexServerKeyShare.send(FlexTLS.FlexTypes.state,HandshakeMessages.tls13kex,Microsoft.FSharp.Core.FSharpOption{FlexTLS.FlexTypes.fragmentationPolicy})">
+ <summary>
+ EXPERIMENTAL TLS 1.3 Send a DHE ServerKeyExchange message to the network stream
+ </summary>
+ <param name="st"> State of the current Handshake </param>
+ <param name="dhgroup"> Diffie-Hellman negotiated group </param>
+ <param name="fp"> Optional fragmentation policy at the record level </param>
+ <returns> Updated state * FServerKeyExchangeTLS13 message record </returns>
+</member>
+<member name="M:FlexTLS.FlexServerKeyShare.FlexServerKeyShare.send(FlexTLS.FlexTypes.state,FlexTLS.FlexTypes.nextSecurityContext,Microsoft.FSharp.Core.FSharpOption{FlexTLS.FlexTypes.fragmentationPolicy})">
+ <summary>
+ EXPERIMENTAL TLS 1.3 Overload : Send a DHE ServerKeyExchange message to the network stream
+ </summary>
+ <param name="st"> State of the current Handshake </param>
+ <param name="nsc"> Next security context that embed the kex to be sent </param>
+ <param name="fp"> Optional fragmentation policy at the record level </param>
+ <returns> Updated state * FServerKeyExchangeTLS13 message record </returns>
+</member>
+<member name="M:FlexTLS.FlexServerKeyShare.FlexServerKeyShare.receive(FlexTLS.FlexTypes.state,TLSConstants.dhGroup)">
+ <summary>
+ EXPERIMENTAL TLS 1.3 Receive DHE ServerKeyExchange from the network stream
+ </summary>
+ <param name="st"> State of the current Handshake </param>
+ <param name="group"> DH group negotiated and received in ServerHello </param>
+ <returns> Updated state * FServerKeyExchange message record </returns>
+</member>
+<member name="M:FlexTLS.FlexServerKeyShare.FlexServerKeyShare.receive(FlexTLS.FlexTypes.state,FlexTLS.FlexTypes.nextSecurityContext)">
+ <summary>
+ EXPERIMENTAL TLS 1.3 Receive DHE ServerKeyExchange from the network stream
+ </summary>
+ <param name="st"> State of the current Handshake </param>
+ <param name="nsc"> Next security context that embed the kex to be sent </param>
+ <returns> Updated state * FServerKeyExchange message record </returns>
+</member>
+<member name="T:FlexTLS.FlexServerKeyShare.FlexServerKeyShare">
+ <summary>
+ Module receiving, sending and forwarding TLS Server Key Share messages.
+ </summary>
+</member>
+<member name="T:FlexTLS.FlexServerKeyShare">
+ <summary>
+ Module receiving, sending and forwarding TLS Server Key Share messages.
+ </summary>
+</member>
+<member name="M:FlexTLS.FlexState.FlexState.updateOutgoingVerifyData(FlexTLS.FlexTypes.state,Bytes.bytes)">
+ <summary> Update the state with verify data on the writing channel </summary>
+</member>
+<member name="M:FlexTLS.FlexState.FlexState.updateOutgoingSecrets(FlexTLS.FlexTypes.state,FlexTLS.FlexTypes.secrets)">
+ <summary> Update the state with new secrets </summary>
+ <remarks> This field is informational only; the new secrets will not be used to encrypt future messages.
+</member>
+<member name="M:FlexTLS.FlexState.FlexState.updateOutgoingRecordEpochInitPV(FlexTLS.FlexTypes.state,TLSConstants.PreProtocolVersion)">
+ <summary> Update the state initial epoch protocol version </summary>
+</member>
+<member name="M:FlexTLS.FlexState.FlexState.updateOutgoingRecord(FlexTLS.FlexTypes.state,Record.ConnectionState)">
+ <summary> Update the state with a new outgoing record </summary>
+</member>
+<member name="M:FlexTLS.FlexState.FlexState.updateOutgoingHSBuffer(FlexTLS.FlexTypes.state,Bytes.bytes)">
+ <summary> Update the state with a new Handshake buffer value </summary>
+</member>
+<member name="M:FlexTLS.FlexState.FlexState.updateOutgoingEpoch(FlexTLS.FlexTypes.state,TLSInfo.preEpoch)">
+ <summary> Update the state with a new epoch </summary>
+</member>
+<member name="M:FlexTLS.FlexState.FlexState.updateOutgoingBuffer(FlexTLS.FlexTypes.state,TLSConstants.preContentType,Bytes.bytes)">
+ <summary> Update the state with a new buffer value for a specific content type </summary>
+</member>
+<member name="M:FlexTLS.FlexState.FlexState.updateOutgoingAppDataBuffer(FlexTLS.FlexTypes.state,Bytes.bytes)">
+ <summary> Update the state with a new Application Data buffer value </summary>
+</member>
+<member name="M:FlexTLS.FlexState.FlexState.updateOutgoingAlertBuffer(FlexTLS.FlexTypes.state,Bytes.bytes)">
+ <summary> Update the state with a new Alert buffer value </summary>
+</member>
+<member name="M:FlexTLS.FlexState.FlexState.updateLog(FlexTLS.FlexTypes.state,TLSConstants.preContentType,Bytes.bytes)">
+ <summary>
+ Update the log according to the given content type by appending bytes (currently only the Handshake log is maintained)
+ </summary>
+ <param name="st"> State to be updated </param>
+ <param name="ct"> Content type </param>
+ <param name="log"> Data to be logged </param>
+ <returns> The state with the updated log </returns>
+</member>
+<member name="M:FlexTLS.FlexState.FlexState.updateIncomingVerifyData(FlexTLS.FlexTypes.state,Bytes.bytes)">
+ <summary> Update the state with verify data on the reading channel </summary>
+</member>
+<member name="M:FlexTLS.FlexState.FlexState.updateIncomingSecrets(FlexTLS.FlexTypes.state,FlexTLS.FlexTypes.secrets)">
+ <summary> Update the state with new reading (incoming) secrets </summary>
+ <remarks> This field is informational only; the new secrets will not be used to encrypt future messages.
+ To change encryption secrets, update the incoming record instead. </remarks>
+</member>
+<member name="M:FlexTLS.FlexState.FlexState.updateIncomingRecordEpochInitPV(FlexTLS.FlexTypes.state,TLSConstants.PreProtocolVersion)">
+ <summary> Update the state with the initial epoch protocol version </summary>
+ <remarks> The user typically doesn't need to invoke this function. It is invoked when receiving a
+ ServerHello message, to set the protocol version for the first handshake on a connection. </remarks>
+</member>
+<member name="M:FlexTLS.FlexState.FlexState.updateIncomingRecord(FlexTLS.FlexTypes.state,Record.ConnectionState)">
+ <summary> Update the state with a new reading (incoming) record </summary>
+</member>
+<member name="M:FlexTLS.FlexState.FlexState.updateIncomingHSBuffer(FlexTLS.FlexTypes.state,Bytes.bytes)">
+ <summary> Update the state with a new Handshake buffer value </summary>
+</member>
+<member name="M:FlexTLS.FlexState.FlexState.updateIncomingEpoch(FlexTLS.FlexTypes.state,TLSInfo.preEpoch)">
+ <summary> Update the state with a new reading (incoming) epoch </summary>
+</member>
+<member name="M:FlexTLS.FlexState.FlexState.updateIncomingBuffer(FlexTLS.FlexTypes.state,TLSConstants.preContentType,Bytes.bytes)">
+ <summary> Update the state with a new buffer value for a specific content type </summary>
+</member>
+<member name="M:FlexTLS.FlexState.FlexState.updateIncomingAppDataBuffer(FlexTLS.FlexTypes.state,Bytes.bytes)">
+ <summary> Update the state with a new Application Data buffer value </summary>
+</member>
+<member name="M:FlexTLS.FlexState.FlexState.updateIncomingAlertBuffer(FlexTLS.FlexTypes.state,Bytes.bytes)">
+ <summary> Update the state with a new Alert buffer value </summary>
+</member>
+<member name="M:FlexTLS.FlexState.FlexState.updateHandshakeLog(FlexTLS.FlexTypes.state,Bytes.bytes)">
+ <summary>
+ Update the Handshake log with the bytes received or sent by the Record Level
+ </summary>
+ <param name="st"> State to update the hs_log with </param>
+ <param name="log"> Log of the handshake </param>
+ <returns> The state with the updated log </returns>
+</member>
+<member name="M:FlexTLS.FlexState.FlexState.resetLogs(FlexTLS.FlexTypes.state)">
+ <summary>
+ Reset all logs maintained in the state to empty bytes
+ </summary>
+ <param name="st"> Current state </param>
+</member>
+<member name="M:FlexTLS.FlexState.FlexState.resetLog(FlexTLS.FlexTypes.state,TLSConstants.preContentType)">
+ <summary>
+ Reset a specific content type log to empty bytes
+ </summary>
+ <param name="st"> Current state </param>
+ <param name="ct"> Content type of the log to reset (Only implemented for HS) </param>
+ <remarks> Mainly used for the hanshake log maintained in the state, we do not maintain a log for other content types </remarks>
+</member>
+<member name="M:FlexTLS.FlexState.FlexState.resetHandshakeLog(FlexTLS.FlexTypes.state)">
+ <summary>
+ Reset the Handshake log to empty bytes
+ </summary>
+ <param name="st"> Current state </param>
+</member>
+<member name="M:FlexTLS.FlexState.FlexState.printBuffersStates(FlexTLS.FlexTypes.state)">
+ <summary>
+ Print the status of the buffers
+ </summary>
+ <param name="st"> State of the current Handshake </param>
+</member>
+<member name="M:FlexTLS.FlexState.FlexState.installWriteKeys(FlexTLS.FlexTypes.state,FlexTLS.FlexTypes.nextSecurityContext)">
+ <summary>
+ Install Writing Keys into the current state
+ </summary>
+ <param name="st"> State of the current Handshake </param>
+ <param name="nsc"> Next security context being negotiated </param>
+ <returns> Updated state </returns>
+</member>
+<member name="M:FlexTLS.FlexState.FlexState.installReadKeys(FlexTLS.FlexTypes.state,FlexTLS.FlexTypes.nextSecurityContext)">
+ <summary>
+ Install Reading Keys into the current state
+ </summary>
+ <param name="st"> State of the current Handshake </param>
+ <param name="nsc"> Next security context being negotiated </param>
+ <returns> Updated state </returns>
+</member>
+<member name="M:FlexTLS.FlexState.FlexState.guessNextEpoch(TLSInfo.preEpoch,FlexTLS.FlexTypes.nextSecurityContext)">
+ <summary>
+ Return the next epoch to be used from the current one and the next security context
+ </summary>
+ <param name="e"> Current epoch </param>
+ <param name="nsc"> Next Security Context </param>
+</member>
+<member name="T:FlexTLS.FlexState.FlexState">
+ <summary>
+ Module handling the application state.
+ </summary>
+</member>
+<member name="T:FlexTLS.FlexState">
+ <summary>
+ Module handling the application state.
+ </summary>
+</member>
+<member name="P:FlexTLS.FlexTypes.FFinished.payload">
+ <summary> Message bytes </summary>
+</member>
+<member name="P:FlexTLS.FlexTypes.FFinished.verify_data">
+ <summary> Typically PRF(ms,hash(handshake log)) </summary>
+</member>
+<member name="T:FlexTLS.FlexTypes.FFinished">
+ <summary>
+ Handshake Message record type for Finished
+ </summary>
+</member>
+<member name="P:FlexTLS.FlexTypes.FChangeCipherSpecs.payload">
+ <summary> Message bytes </summary>
+</member>
+<member name="T:FlexTLS.FlexTypes.FChangeCipherSpecs">
+ <summary>
+ CCS Message record type
+ </summary>
+</member>
+<member name="P:FlexTLS.FlexTypes.FClientKeyExchange.payload">
+ <summary> Message bytes </summary>
+</member>
+<member name="P:FlexTLS.FlexTypes.FClientKeyExchange.kex">
+ <summary> Key Exchange mechanism information </summary>
+</member>
+<member name="T:FlexTLS.FlexTypes.FClientKeyExchange">
+ <summary>
+ Handshake Message record type for Client Key Exchange
+ </summary>
+</member>
+<member name="P:FlexTLS.FlexTypes.FCertificateVerify.payload">
+ <summary> Message bytes </summary>
+</member>
+<member name="P:FlexTLS.FlexTypes.FCertificateVerify.signature">
+ <summary> Signature </summary>
+</member>
+<member name="P:FlexTLS.FlexTypes.FCertificateVerify.sigAlg">
+ <summary> Signature algorithm </summary>
+</member>
+<member name="T:FlexTLS.FlexTypes.FCertificateVerify">
+ <summary>
+ Handshake Message record type for Certificate Verify
+ </summary>
+</member>
+<member name="P:FlexTLS.FlexTypes.FServerHelloDone.payload">
+ <summary> Message Bytes</summary>
+</member>
+<member name="T:FlexTLS.FlexTypes.FServerHelloDone">
+ <summary>
+ Handshake Message record type for Server Hello Done
+ </summary>
+</member>
+<member name="P:FlexTLS.FlexTypes.FCertificateRequest.payload">
+ <summary> Message bytes </summary>
+</member>
+<member name="P:FlexTLS.FlexTypes.FCertificateRequest.names">
+ <summary> List of user provided cert names </summary>
+</member>
+<member name="P:FlexTLS.FlexTypes.FCertificateRequest.sigAlgs">
+ <summary> List of Signature algorithms </summary>
+</member>
+<member name="P:FlexTLS.FlexTypes.FCertificateRequest.certTypes">
+ <summary> List of certificate types </summary>
+</member>
+<member name="T:FlexTLS.FlexTypes.FCertificateRequest">
+ <summary>
+ Handshake Message record type for Certificate Request
+ </summary>
+</member>
+<member name="P:FlexTLS.FlexTypes.FServerKeyExchange.payload">
+ <summary> Message bytes </summary>
+</member>
+<member name="P:FlexTLS.FlexTypes.FServerKeyExchange.kex">
+ <summary> Key Exchange Information </summary>
+</member>
+<member name="P:FlexTLS.FlexTypes.FServerKeyExchange.signature">
+ <summary> Signature </summary>
+</member>
+<member name="P:FlexTLS.FlexTypes.FServerKeyExchange.sigAlg">
+ <summary> Signature algorithm </summary>
+</member>
+<member name="T:FlexTLS.FlexTypes.FServerKeyExchange">
+ <summary>
+ Handshake Message record type for Server Key Exchange
+ </summary>
+</member>
+<member name="P:FlexTLS.FlexTypes.FCertificate.payload">
+ <summary> Message bytes</summary>
+</member>
+<member name="P:FlexTLS.FlexTypes.FCertificate.chain">
+ <summary> Full certificate chain bytes </summary>
+</member>
+<member name="T:FlexTLS.FlexTypes.FCertificate">
+ <summary>
+ Handshake Message record type for Certificate
+ </summary>
+</member>
+<member name="P:FlexTLS.FlexTypes.FServerHello.payload">
+ <summary> Message bytes </summary>
+</member>
+<member name="P:FlexTLS.FlexTypes.FServerHello.ext">
+ <summary> List of extensions agreed by the server </summary>
+</member>
+<member name="P:FlexTLS.FlexTypes.FServerHello.comp">
+ <summary> Compression selected by the server </summary>
+</member>
+<member name="P:FlexTLS.FlexTypes.FServerHello.ciphersuite">
+ <summary> Ciphersuite selected by the server </summary>
+</member>
+<member name="P:FlexTLS.FlexTypes.FServerHello.sid">
+ <summary> Session identifier. A non-empty byte array indicates that the server accepted resumption </summary>
+</member>
+<member name="P:FlexTLS.FlexTypes.FServerHello.rand">
+ <summary> Server random bytes </summary>
+</member>
+<member name="P:FlexTLS.FlexTypes.FServerHello.pv">
+ <summary> Protocol version </summary>
+</member>
+<member name="T:FlexTLS.FlexTypes.FServerHello">
+ <summary>
+ Handshake Message record type for Server Hello
+ </summary>
+</member>
+<member name="P:FlexTLS.FlexTypes.FClientHello.payload">
+ <summary> Message Bytes </summary>
+</member>
+<member name="P:FlexTLS.FlexTypes.FClientHello.ext">
+ <summary> List of extensions proposed by the client; None: user asks for default; Some<list>: user gives value. A returned client hello always has Some<list>. </summary>
+</member>
+<member name="P:FlexTLS.FlexTypes.FClientHello.comps">
+ <summary> List of compression mechanisms supported by the client </summary>
+</member>
+<member name="P:FlexTLS.FlexTypes.FClientHello.ciphersuites">
+ <summary> List of ciphersuite names supported by the client </summary>
+</member>
+<member name="P:FlexTLS.FlexTypes.FClientHello.sid">
+ <summary> Session identifier. A non-empty byte array indicates that the client wants resumption </summary>
+</member>
+<member name="P:FlexTLS.FlexTypes.FClientHello.rand">
+ <summary> Client random bytes </summary>
+</member>
+<member name="P:FlexTLS.FlexTypes.FClientHello.pv">
+ <summary> Protocol version </summary>
+</member>
+<member name="T:FlexTLS.FlexTypes.FClientHello">
+ <summary>
+ Handshake Message record type for Client Hello
+ </summary>
+</member>
+<member name="P:FlexTLS.FlexTypes.FHelloRequest.payload">
+ <summary> Message Bytes </summary>
+</member>
+<member name="T:FlexTLS.FlexTypes.FHelloRequest">
+ <summary>
+ Handshake Message record type for Hello Request
+ </summary>
+</member>
+<member name="P:FlexTLS.FlexTypes.nextSecurityContext.offers">
+ <summary> Offers of DH groups and public keys from the client (useful for negotiated DH groups, and hence for TLS 1.3) </summary>
+</member>
+<member name="P:FlexTLS.FlexTypes.nextSecurityContext.secrets">
+ <summary> Secrets to be used by the next epoch </summary>
+</member>
+<member name="P:FlexTLS.FlexTypes.nextSecurityContext.srand">
+ <summary> Most recent server random; used to generate new keys </summary>
+</member>
+<member name="P:FlexTLS.FlexTypes.nextSecurityContext.crand">
+ <summary> Most recent client random; used to generate new keys </summary>
+</member>
+<member name="P:FlexTLS.FlexTypes.nextSecurityContext.si">
+ <summary> Next session information (for the future epoch/record state) </summary>
+</member>
+<member name="T:FlexTLS.FlexTypes.nextSecurityContext">
+ <summary>
+ Next security context record used to generate a new epoch
+ </summary>
+</member>
+<member name="P:FlexTLS.FlexTypes.state.hs_log">
+ <summary> Handshake log </summary>
+</member>
+<member name="P:FlexTLS.FlexTypes.state.ns">
+ <summary> Network stream where the data is exchanged with the peer </summary>
+</member>
+<member name="P:FlexTLS.FlexTypes.state.write">
+ <summary> Writing channel (Outgoing) </summary>
+</member>
+<member name="P:FlexTLS.FlexTypes.state.read">
+ <summary> Reading channel (Incoming) </summary>
+</member>
+<member name="T:FlexTLS.FlexTypes.state">
+ <summary>
+ Global state of the application
+ </summary>
+</member>
+<member name="P:FlexTLS.FlexTypes.channel.appdata_buffer">
+ <summary> Buffer for messages of the ApplicationData content type </summary>
+</member>
+<member name="P:FlexTLS.FlexTypes.channel.alert_buffer">
+ <summary> Buffer for messages of the Alert content type </summary>
+</member>
+<member name="P:FlexTLS.FlexTypes.channel.hs_buffer">
+ <summary> Buffer for messages of the Handshake content type </summary>
+</member>
+<member name="P:FlexTLS.FlexTypes.channel.verify_data">
+ <summary> Verify data of the channel </summary>
+</member>
+<member name="P:FlexTLS.FlexTypes.channel.epoch_init_pv">
+ <summary> Initially chosen protocol version before negotiation </summary>
+</member>
+<member name="P:FlexTLS.FlexTypes.channel.secrets">
+ <summary> Raw bytes of the secrets currently in use. This is meant to be a read-only (informational) field: changes to this field will have no effect </summary>
+</member>
+<member name="P:FlexTLS.FlexTypes.channel.epoch">
+ <summary> Public immutable data of the current epoch </summary>
+</member>
+<member name="P:FlexTLS.FlexTypes.channel.record">
+ <summary> Secret and mutable state of the current epoch (keys, sequence number, etc...) </summary>
+</member>
+<member name="T:FlexTLS.FlexTypes.channel">
+ <summary>
+ Channel record,
+ Keeps track of the Record state and the associated Epoch of an I/O channel
+ </summary>
+ <remarks> There is no CCS buffer because those are only one byte </remarks>
+</member>
+<member name="P:FlexTLS.FlexTypes.secrets.epoch_keys">
+ <summary> Keys bytes of an epoch, as a tuple (reading keys, writing keys) </summary>
+</member>
+<member name="P:FlexTLS.FlexTypes.secrets.ms">
+ <summary> Master Secret bytes </summary>
+</member>
+<member name="P:FlexTLS.FlexTypes.secrets.pms">
+ <summary> Pre Master Secret bytes </summary>
+</member>
+<member name="P:FlexTLS.FlexTypes.secrets.kex">
+ <summary> Key Exchange bytes </summary>
+</member>
+<member name="P:FlexTLS.FlexTypes.secrets.pri_key">
+ <summary> Private key associated to the current certificate (in sessionInfo) </summary>
+</member>
+<member name="T:FlexTLS.FlexTypes.secrets">
+ <summary>
+ Session Secrets record,
+ This structure contains all secret information of a Handshake
+ </summary>
+</member>
+<member name="P:FlexTLS.FlexTypes.FServerKeyShare.payload">
+ <summary> Message bytes </summary>
+</member>
+<member name="P:FlexTLS.FlexTypes.FServerKeyShare.kex">
+ <summary> Key Exchange chosen </summary>
+</member>
+<member name="T:FlexTLS.FlexTypes.FServerKeyShare">
+ <summary>
+ Handshake Message record type for Server Key Share
+ </summary>
+</member>
+<member name="P:FlexTLS.FlexTypes.FClientKeyShare.payload">
+ <summary> Message bytes </summary>
+</member>
+<member name="P:FlexTLS.FlexTypes.FClientKeyShare.offers">
+ <summary> List of Key Exchange offers </summary>
+</member>
+<member name="T:FlexTLS.FlexTypes.FClientKeyShare">
+ <summary>
+ Handshake Message record type for Client Key Share
+ </summary>
+</member>
+<member name="T:FlexTLS.FlexTypes.priKey.PK_Enc">
+ <summary> Private (RSA) decryption key </summary>
+</member>
+<member name="T:FlexTLS.FlexTypes.priKey.PK_Sig">
+ <summary> Private signing key and associated algorithm </summary>
+</member>
+<member name="T:FlexTLS.FlexTypes.priKey.PK_None">
+ <summary> No key set </summary>
+</member>
+<member name="T:FlexTLS.FlexTypes.priKey">
+ <summary>
+ Hold certificates private keys
+ </summary>
+</member>
+<member name="T:FlexTLS.FlexTypes.kex.ECDH">
+ <summary> Key Exchange Type is Elliptic Curve Diffie-Hellman with negotiated curve and the constructor holds all ECDH parameters </summary>
+</member>
+<member name="T:FlexTLS.FlexTypes.kex.DH13">
+ <summary> Key Exchange Type is Diffie-Hellman with negotiated group and the constructor holds all DH parameters </summary>
+</member>
+<member name="T:FlexTLS.FlexTypes.kex.DH">
+ <summary> Key Exchange Type is Diffie-Hellman and the constructor holds all DH parameters </summary>
+</member>
+<member name="T:FlexTLS.FlexTypes.kex.RSA">
+ <summary> Key Exchange Type is RSA and the constructor holds the pre-master secret </summary>
+</member>
+<member name="T:FlexTLS.FlexTypes.kex">
+ <summary>
+ Key exchange union type,
+ The constructor represents the type of Key Exchange Mechanism used in the Handshake
+ </summary>
+</member>
+<member name="P:FlexTLS.FlexTypes.kexECDH.ecp_y">
+ <summary> Peer's public value represented as a point coordinates </summary>
+</member>
+<member name="P:FlexTLS.FlexTypes.kexECDH.ecp_x">
+ <summary> Local public value represented as a point coordinates </summary>
+</member>
+<member name="P:FlexTLS.FlexTypes.kexECDH.x">
+ <summary> Local secret value of the ECDH exchange </summary>
+</member>
+<member name="P:FlexTLS.FlexTypes.kexECDH.curve">
+ <summary> Negotiated Elliptic Curve and associated compression </summary>
+</member>
+<member name="T:FlexTLS.FlexTypes.kexECDH">
+ <summary>
+ ECDH key exchange parameters record, for negotiated ECDH parameters
+ Contains both public and secret values associated of EC Diffie Hellman parameters
+ </summary>
+</member>
+<member name="P:FlexTLS.FlexTypes.kexDHTLS13.gy">
+ <summary> Peer's public value (g^y mod p) of the DH exchange </summary>
+</member>
+<member name="P:FlexTLS.FlexTypes.kexDHTLS13.gx">
+ <summary> Local public value (g^x mod p) of the DH exchange </summary>
+</member>
+<member name="P:FlexTLS.FlexTypes.kexDHTLS13.x">
+ <summary> Local secret value of the DH exchange </summary>
+</member>
+<member name="P:FlexTLS.FlexTypes.kexDHTLS13.group">
+ <summary> Negotiated DH group </summary>
+</member>
+<member name="T:FlexTLS.FlexTypes.kexDHTLS13">
+ <summary>
+ DH key exchange parameters record, for negotiated DH parameters
+ Contains both public and secret values associated of Diffie Hellman parameters
+ </summary>
+</member>
+<member name="P:FlexTLS.FlexTypes.kexDH.gy">
+ <summary> Peer's public value (g^y mod p) of the DH exchange </summary>
+</member>
+<member name="P:FlexTLS.FlexTypes.kexDH.gx">
+ <summary> Local public value (g^x mod p) of the DH exchange </summary>
+</member>
+<member name="P:FlexTLS.FlexTypes.kexDH.x">
+ <summary> Local secret value of the DH exchange </summary>
+</member>
+<member name="P:FlexTLS.FlexTypes.kexDH.pg">
+ <summary> Tuple (p,g) that contains both p and g public DH parameters </summary>
+</member>
+<member name="T:FlexTLS.FlexTypes.kexDH">
+ <summary>
+ DH key exchange parameters record,
+ Contains both public and secret values associated to Diffie Hellman parameters
+ </summary>
+</member>
+<member name="T:FlexTLS.FlexTypes.fragmentationPolicy.One">
+ <summary> Will send One fragment of length LEN bytes </summary>
+</member>
+<member name="T:FlexTLS.FlexTypes.fragmentationPolicy.All">
+ <summary> Will send All fragments, each of length LEN bytes </summary>
+</member>
+<member name="T:FlexTLS.FlexTypes.fragmentationPolicy">
+ <summary>
+ Fragmentation policy union type,
+ The constructor represents the number of fragments that will be sent to the network
+ The value represents the length of the fragments that will be sent
+ </summary>
+</member>
+</members>
+</doc>

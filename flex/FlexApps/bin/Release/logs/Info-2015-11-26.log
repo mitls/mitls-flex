@@ -1,0 +1,11 @@
+INFO --- TCP : Connecting to localhost:443
+INFO --- # CLIENT HELLO : FlexClientHello.send
+INFO --- # SERVER HELLO : FlexServerHello.receive
+INFO --- --- Ciphersuite : TLS_RSA_WITH_AES_128_GCM_SHA256
+INFO --- # CERTIFICATE : FlexCertificate.receive
+INFO --- # SERVER HELLO DONE : FlexServerHelloDone.receive
+INFO --- # CLIENT KEY EXCHANGE : FlexClientKeyExchange.sendRSA
+INFO --- # CCS : FlexCCS.send
+INFO --- # FINISHED : FlexFinished.send
+INFO --- # CCS : FlexCCS.receive
+INFO --- # FINISHED : FlexFinished.receive

@@ -1,0 +1,910 @@
+<log4j:event logger="file" level="INFO" timestamp="1448622894335" thread="1">
+  <log4j:message>TCP : Connecting to localhost:443</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(6844)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448622895413" thread="1">
+  <log4j:message># CLIENT HELLO : FlexClientHello.send</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(6844)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448622895568" thread="1">
+  <log4j:message># SERVER HELLO : FlexServerHello.receive</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(6844)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448622895630" thread="1">
+  <log4j:message>--- Ciphersuite : TLS_RSA_WITH_AES_128_GCM_SHA256</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(6844)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448622895645" thread="1">
+  <log4j:message># CERTIFICATE : FlexCertificate.receive</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(6844)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448622895677" thread="1">
+  <log4j:message># SERVER HELLO DONE : FlexServerHelloDone.receive</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(6844)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448622895708" thread="1">
+  <log4j:message># CLIENT KEY EXCHANGE : FlexClientKeyExchange.sendRSA</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(6844)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448622896131" thread="1">
+  <log4j:message># CCS : FlexCCS.send</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(6844)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448622896163" thread="1">
+  <log4j:message># FINISHED : FlexFinished.send</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(6844)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448622896211" thread="1">
+  <log4j:message># CCS : FlexCCS.receive</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(6844)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448622896238" thread="1">
+  <log4j:message># FINISHED : FlexFinished.receive</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(6844)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636161844" thread="1">
+  <log4j:message>BEGIN deviant trace 153</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636161909" thread="1">
+  <log4j:message>TCP : Connecting to localhost:443</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636163011" thread="1">
+  <log4j:message># CLIENT HELLO : FlexClientHello.send</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636163175" thread="1">
+  <log4j:message># SERVER HELLO : FlexServerHello.receive</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636163194" thread="1">
+  <log4j:message>unsupported: Error at FlexRecord.fs:82: Error at Tcp.fs:71: TCP connection closed: Read returned 0 bytes..</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636163206" thread="1">
+  <log4j:message>END UNSUPPORTED deviant trace 153</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636163206" thread="1">
+  <log4j:message>BEGIN deviant trace 152</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636163221" thread="1">
+  <log4j:message>TCP : Connecting to localhost:443</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636164267" thread="1">
+  <log4j:message># CLIENT HELLO : FlexClientHello.send</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636164330" thread="1">
+  <log4j:message># SERVER HELLO : FlexServerHello.receive</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636164344" thread="1">
+  <log4j:message>unsupported: Error at FlexRecord.fs:82: Error at Tcp.fs:71: TCP connection closed: Read returned 0 bytes..</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636164360" thread="1">
+  <log4j:message>END UNSUPPORTED deviant trace 152</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636164376" thread="1">
+  <log4j:message>BEGIN deviant trace 151</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636164376" thread="1">
+  <log4j:message>TCP : Connecting to localhost:443</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636165429" thread="1">
+  <log4j:message># CLIENT HELLO : FlexClientHello.send</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636165502" thread="1">
+  <log4j:message># SERVER HELLO : FlexServerHello.receive</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636165517" thread="1">
+  <log4j:message>unsupported: Error at FlexRecord.fs:82: Error at Tcp.fs:71: TCP connection closed: Read returned 0 bytes..</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636165532" thread="1">
+  <log4j:message>END UNSUPPORTED deviant trace 151</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636165532" thread="1">
+  <log4j:message>BEGIN deviant trace 150</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636165549" thread="1">
+  <log4j:message>TCP : Connecting to localhost:443</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636166595" thread="1">
+  <log4j:message># CLIENT HELLO : FlexClientHello.send</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636166674" thread="1">
+  <log4j:message># SERVER HELLO : FlexServerHello.receive</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636166690" thread="1">
+  <log4j:message>unsupported: Error at FlexRecord.fs:82: Error at Tcp.fs:71: TCP connection closed: Read returned 0 bytes..</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636166690" thread="1">
+  <log4j:message>END UNSUPPORTED deviant trace 150</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636166706" thread="1">
+  <log4j:message>BEGIN deviant trace 149</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636166720" thread="1">
+  <log4j:message>TCP : Connecting to localhost:443</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636167767" thread="1">
+  <log4j:message># CLIENT HELLO : FlexClientHello.send</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636167845" thread="1">
+  <log4j:message># SERVER HELLO : FlexServerHello.receive</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636167863" thread="1">
+  <log4j:message>unsupported: Error at FlexRecord.fs:82: Error at Tcp.fs:71: TCP connection closed: Read returned 0 bytes..</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636167876" thread="1">
+  <log4j:message>END UNSUPPORTED deviant trace 149</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636167876" thread="1">
+  <log4j:message>BEGIN deviant trace 148</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636167892" thread="1">
+  <log4j:message>TCP : Connecting to localhost:443</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636168941" thread="1">
+  <log4j:message># CLIENT HELLO : FlexClientHello.send</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636169066" thread="1">
+  <log4j:message># SERVER HELLO : FlexServerHello.receive</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636169079" thread="1">
+  <log4j:message>unsupported: Error at FlexRecord.fs:82: Error at Tcp.fs:71: TCP connection closed: Read returned 0 bytes..</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636169095" thread="1">
+  <log4j:message>END UNSUPPORTED deviant trace 148</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636169112" thread="1">
+  <log4j:message>BEGIN deviant trace 141</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636169112" thread="1">
+  <log4j:message>TCP : Connecting to localhost:443</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636170163" thread="1">
+  <log4j:message># CLIENT HELLO : FlexClientHello.send</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636170252" thread="1">
+  <log4j:message># SERVER HELLO : FlexServerHello.receive</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636170268" thread="1">
+  <log4j:message>unsupported: Error at FlexRecord.fs:82: Error at Tcp.fs:71: TCP connection closed: Read returned 0 bytes..</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636170282" thread="1">
+  <log4j:message>END UNSUPPORTED deviant trace 141</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636170298" thread="1">
+  <log4j:message>BEGIN deviant trace 140</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636170315" thread="1">
+  <log4j:message>TCP : Connecting to localhost:443</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636171346" thread="1">
+  <log4j:message># CLIENT HELLO : FlexClientHello.send</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636171440" thread="1">
+  <log4j:message># SERVER HELLO : FlexServerHello.receive</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636171455" thread="1">
+  <log4j:message>unsupported: Error at FlexRecord.fs:82: Error at Tcp.fs:71: TCP connection closed: Read returned 0 bytes..</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636171471" thread="1">
+  <log4j:message>END UNSUPPORTED deviant trace 140</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636171485" thread="1">
+  <log4j:message>BEGIN deviant trace 139</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636171503" thread="1">
+  <log4j:message>TCP : Connecting to localhost:443</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636172541" thread="1">
+  <log4j:message># CLIENT HELLO : FlexClientHello.send</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636172626" thread="1">
+  <log4j:message># SERVER HELLO : FlexServerHello.receive</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636172642" thread="1">
+  <log4j:message>unsupported: Error at FlexRecord.fs:82: Error at Tcp.fs:71: TCP connection closed: Read returned 0 bytes..</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636172657" thread="1">
+  <log4j:message>END UNSUPPORTED deviant trace 139</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636172672" thread="1">
+  <log4j:message>BEGIN deviant trace 138</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636172690" thread="1">
+  <log4j:message>TCP : Connecting to localhost:443</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636173737" thread="1">
+  <log4j:message># CLIENT HELLO : FlexClientHello.send</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636173829" thread="1">
+  <log4j:message># SERVER HELLO : FlexServerHello.receive</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636173848" thread="1">
+  <log4j:message>unsupported: Error at FlexRecord.fs:82: Error at Tcp.fs:71: TCP connection closed: Read returned 0 bytes..</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636173862" thread="1">
+  <log4j:message>END UNSUPPORTED deviant trace 138</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636173876" thread="1">
+  <log4j:message>BEGIN deviant trace 137</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636173893" thread="1">
+  <log4j:message>TCP : Connecting to localhost:443</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636174939" thread="1">
+  <log4j:message># CLIENT HELLO : FlexClientHello.send</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636175036" thread="1">
+  <log4j:message># SERVER HELLO : FlexServerHello.receive</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636175048" thread="1">
+  <log4j:message>unsupported: Error at FlexRecord.fs:82: Error at Tcp.fs:71: TCP connection closed: Read returned 0 bytes..</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636175064" thread="1">
+  <log4j:message>END UNSUPPORTED deviant trace 137</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636175079" thread="1">
+  <log4j:message>BEGIN deviant trace 136</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636175095" thread="1">
+  <log4j:message>TCP : Connecting to localhost:443</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636176142" thread="1">
+  <log4j:message># CLIENT HELLO : FlexClientHello.send</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636176253" thread="1">
+  <log4j:message># SERVER HELLO : FlexServerHello.receive</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636176268" thread="1">
+  <log4j:message>unsupported: Error at FlexRecord.fs:82: Error at Tcp.fs:71: TCP connection closed: Read returned 0 bytes..</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636176282" thread="1">
+  <log4j:message>END UNSUPPORTED deviant trace 136</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636176301" thread="1">
+  <log4j:message>BEGIN deviant trace 126</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636176314" thread="1">
+  <log4j:message>TCP : Connecting to localhost:443</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636177364" thread="1">
+  <log4j:message># CLIENT HELLO : FlexClientHello.send</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636177455" thread="1">
+  <log4j:message># SERVER HELLO : FlexServerHello.receive</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636177472" thread="1">
+  <log4j:message>unsupported: Error at FlexRecord.fs:82: Error at Tcp.fs:71: TCP connection closed: Read returned 0 bytes..</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636177487" thread="1">
+  <log4j:message>END UNSUPPORTED deviant trace 126</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636177501" thread="1">
+  <log4j:message>BEGIN deviant trace 125</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636177518" thread="1">
+  <log4j:message>TCP : Connecting to localhost:443</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636178552" thread="1">
+  <log4j:message># CLIENT HELLO : FlexClientHello.send</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636178641" thread="1">
+  <log4j:message># SERVER HELLO : FlexServerHello.receive</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636178657" thread="1">
+  <log4j:message>unsupported: Error at FlexRecord.fs:82: Error at Tcp.fs:71: TCP connection closed: Read returned 0 bytes..</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636178657" thread="1">
+  <log4j:message>END UNSUPPORTED deviant trace 125</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636178688" thread="1">
+  <log4j:message>BEGIN deviant trace 124</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636178704" thread="1">
+  <log4j:message>TCP : Connecting to localhost:443</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636179752" thread="1">
+  <log4j:message># CLIENT HELLO : FlexClientHello.send</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636179848" thread="1">
+  <log4j:message># SERVER HELLO : FlexServerHello.receive</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636179862" thread="1">
+  <log4j:message>unsupported: Error at FlexRecord.fs:82: Error at Tcp.fs:71: TCP connection closed: Read returned 0 bytes..</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636179877" thread="1">
+  <log4j:message>END UNSUPPORTED deviant trace 124</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636179894" thread="1">
+  <log4j:message>BEGIN deviant trace 120</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636179907" thread="1">
+  <log4j:message>TCP : Connecting to localhost:443</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636180954" thread="1">
+  <log4j:message># CLIENT HELLO : FlexClientHello.send</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636181047" thread="1">
+  <log4j:message># SERVER HELLO : FlexServerHello.receive</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636181081" thread="1">
+  <log4j:message>unsupported: Error at FlexRecord.fs:82: Error at Tcp.fs:71: TCP connection closed: Read returned 0 bytes..</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636181108" thread="1">
+  <log4j:message>END UNSUPPORTED deviant trace 120</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636181134" thread="1">
+  <log4j:message>BEGIN deviant trace 119</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636181161" thread="1">
+  <log4j:message>TCP : Connecting to localhost:443</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636182244" thread="1">
+  <log4j:message># CLIENT HELLO : FlexClientHello.send</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636182345" thread="1">
+  <log4j:message># SERVER HELLO : FlexServerHello.receive</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636182385" thread="1">
+  <log4j:message>unsupported: Error at FlexRecord.fs:82: Error at Tcp.fs:71: TCP connection closed: Read returned 0 bytes..</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636182434" thread="1">
+  <log4j:message>END UNSUPPORTED deviant trace 119</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636182480" thread="1">
+  <log4j:message>BEGIN deviant trace 118</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636182526" thread="1">
+  <log4j:message>TCP : Connecting to localhost:443</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636183634" thread="1">
+  <log4j:message># CLIENT HELLO : FlexClientHello.send</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636183865" thread="1">
+  <log4j:message># SERVER HELLO : FlexServerHello.receive</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636183878" thread="1">
+  <log4j:message>unsupported: Error at FlexRecord.fs:82: Error at Tcp.fs:71: TCP connection closed: Read returned 0 bytes..</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636183891" thread="1">
+  <log4j:message>END UNSUPPORTED deviant trace 118</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(16792)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636190709" thread="1">
+  <log4j:message>TCP : Connecting to localhost:443</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(29828)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636191837" thread="1">
+  <log4j:message># CLIENT HELLO : FlexClientHello.send</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(29828)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636192052" thread="1">
+  <log4j:message># SERVER HELLO : FlexServerHello.receive</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(29828)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636192146" thread="1">
+  <log4j:message>--- Ciphersuite : TLS_RSA_WITH_AES_128_GCM_SHA256</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(29828)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636192189" thread="1">
+  <log4j:message># CERTIFICATE : FlexCertificate.receive</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(29828)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636192221" thread="1">
+  <log4j:message># SERVER HELLO DONE : FlexServerHelloDone.receive</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(29828)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636192251" thread="1">
+  <log4j:message># CLIENT KEY EXCHANGE : FlexClientKeyExchange.sendRSA</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(29828)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636192580" thread="1">
+  <log4j:message># CCS : FlexCCS.send</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(29828)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636192611" thread="1">
+  <log4j:message># FINISHED : FlexFinished.send</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(29828)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636192668" thread="1">
+  <log4j:message># CCS : FlexCCS.receive</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(29828)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>
+<log4j:event logger="file" level="INFO" timestamp="1448636192689" thread="1">
+  <log4j:message># FINISHED : FlexFinished.receive</log4j:message>
+  <log4j:properties>
+    <log4j:data name="log4japp" value="FlexApps.exe(29828)" />
+    <log4j:data name="log4jmachinename" value="MSRC-3617018" />
+  </log4j:properties>
+</log4j:event>

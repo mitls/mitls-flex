@@ -1,0 +1,12 @@
+C:\Users\sishtiaq\work\mitls-flex\libs\Platform\bin\Debug\Platform.XML
+C:\Users\sishtiaq\work\mitls-flex\libs\Platform\bin\Debug\Platform.dll
+C:\Users\sishtiaq\work\mitls-flex\libs\Platform\bin\Debug\Platform.pdb
+C:\Users\sishtiaq\work\mitls-flex\libs\Platform\bin\Debug\FSharp.Core.dll
+C:\Users\sishtiaq\work\mitls-flex\libs\Platform\bin\Debug\Newtonsoft.Json.dll
+C:\Users\sishtiaq\work\mitls-flex\libs\Platform\bin\Debug\System.Data.SQLite.dll
+C:\Users\sishtiaq\work\mitls-flex\libs\Platform\bin\Debug\FSharp.Core.xml
+C:\Users\sishtiaq\work\mitls-flex\libs\Platform\bin\Debug\Newtonsoft.Json.xml
+C:\Users\sishtiaq\work\mitls-flex\libs\Platform\bin\Debug\System.Data.SQLite.xml
+C:\Users\sishtiaq\work\mitls-flex\libs\Platform\obj\Debug\Platform.fsprojResolveAssemblyReference.cache
+C:\Users\sishtiaq\work\mitls-flex\libs\Platform\obj\Debug\Platform.dll
+C:\Users\sishtiaq\work\mitls-flex\libs\Platform\obj\Debug\Platform.pdb
