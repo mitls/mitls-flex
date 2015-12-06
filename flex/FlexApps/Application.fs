@@ -28,6 +28,7 @@ open FlexTypes
 open FlexApps
 open Parsing
 open Test_EarlyAppData
+open Test_EarlyAppDataRenego
 open Attack_Alert
 open Attack_FragmentClientHello
 open Attack_EarlyCCS
@@ -190,6 +191,8 @@ let runRelease argv =
     | Some (Test_EarlyAppData) ->
          let _ = Test_EarlyAppData.client(opts.connect_addr,opts.connect_port) in true
 
+    | Some (Test_EarlyAppDataRenego) ->
+         let _ = Test_EarlyAppDataRenego.client(opts.connect_addr,opts.connect_port) in true
 
     // Nothing has been provided
     | None -> flexhelp Parsing.stderr; false)
