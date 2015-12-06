@@ -28,6 +28,8 @@ type ScenarioOpt    = // Normal
                       | Attack_FragmentedAlert | Attack_Alert_Warning | Attack_FragmentedClientHello
                       | Attack_SKIP_EarlyFinished | Attack_EarlyCCS | Attack_EarlyCCSMITM | Attack_TripleHandshake | Attack_SmallSubgroup | Attack_EarlyResume
                       | Attack_Logjam
+                      // Tests
+                      | Test_EarlyAppData
                       // Script
                       | Script
 
@@ -113,6 +115,8 @@ let flexhelp w =
     fprintf w "                         Small Subgroup              {sgp,smallsubgroup}\n";
     fprintf w "                         Early Resume                {eres,earlyresume}\n";
     fprintf w "                         Logjam                      {lj,logjam}\n";
+    fprintf w "                     - Tests\n";
+    fprintf w "                         Early AppData               {eapp,earlyappdata}\n";
     fprintf w "  --connect     : [] Connect to address (or domain) and port    (default : %s:%d)\n" defaultOpts.connect_addr defaultOpts.connect_port;
     fprintf w "  --client-cert : [] Use client authentication with the given CN\n";
     fprintf w "  --accept      : [] Accept address (or domain) and port        (default : %s:%d)\n" defaultOpts.listen_addr defaultOpts.listen_port;
@@ -148,6 +152,7 @@ let private parse_scenario =
             | "smallsubgroup"| "sgp"   -> Some Attack_SmallSubgroup
             | "earlyresume" | "eres"   -> Some Attack_EarlyResume
             | "logjam" | "lj"          -> Some Attack_Logjam
+            | "earlyappdata" | "eapp"  -> Some Test_EarlyAppData
             | _                        -> None
 
 let private parse_address (s:string) =

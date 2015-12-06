@@ -27,6 +27,7 @@ open FlexTypes
 
 open FlexApps
 open Parsing
+open Test_EarlyAppData
 open Attack_Alert
 open Attack_FragmentClientHello
 open Attack_EarlyCCS
@@ -185,6 +186,10 @@ let runRelease argv =
 
     | Some (Attack_Logjam) ->
          let _ = Attack_Logjam.run(opts.listen_addr,opts.connect_addr,opts.listen_port,opts.connect_port) in true
+
+    | Some (Test_EarlyAppData) ->
+         let _ = Test_EarlyAppData.client(opts.connect_addr,opts.connect_port) in true
+
 
     // Nothing has been provided
     | None -> flexhelp Parsing.stderr; false)
