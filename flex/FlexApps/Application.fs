@@ -35,8 +35,8 @@ open Attack_SKIP_EarlyFinished
 open Attack_TripleHandshake
 open Attack_SmallSubgroup_DHE
 open Attack_Logjam
-open Handshake_full_RSA
 open Attack_Alert_Warning
+open Handshake_full_RSA
 open Handshake_full_DHE
 open Handshake_full_ECDHE
 open Handshake_resumption
