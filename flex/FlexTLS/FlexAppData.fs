@@ -36,7 +36,7 @@ type FlexAppData =
     /// <summary>
     /// Receive application data from network stream
     /// </summary>
-    /// <param name="st"> State of the current Handshake </param>
+    /// <param name="st"> State of the current connection </param>
     /// <returns> Updated state * Application data bytes received </returns>
 
     static member receive (st:state) : state * bytes =
@@ -51,8 +51,8 @@ type FlexAppData =
     /// <summary>
     /// Forward application data to the network stream
     /// </summary>
-    /// <param name="stin"> State of the current Handshake on the incoming side </param>
-    /// <param name="stout"> State of the current Handshake on the outgoing side </param>
+    /// <param name="stin"> State of the current connection on the incoming side </param>
+    /// <param name="stout"> State of the current connection on the outgoing side </param>
     /// <param name="fp"> Optional fragmentation policy applied to the message </param>
     /// <returns> Updated incoming state * Updated outgoing state * forwarded application data bytes </returns>
     static member forward (stin:state, stout:state, ?fp:fragmentationPolicy) : state * state * bytes =
@@ -64,7 +64,7 @@ type FlexAppData =
     /// <summary>
     /// Send the HTTP application data
     /// </summary>
-    /// <param name="st"> State of the current Handshake </param>
+    /// <param name="st"> State of the current connection </param>
     /// <param name="data"> String to send as HTTP </param>
     /// <returns> Updated state <returns>
     static member send_http(st:state, data:string) : state =
@@ -73,7 +73,7 @@ type FlexAppData =
     /// <summary>
     /// Send the HTTP application data banner for FlexTLS
     /// </summary>
-    /// <param name="st"> State of the current Handshake </param>
+    /// <param name="st"> State of the current connection </param>
     /// <returns> Updated state <returns>
     static member send_http_banner(st:state) : state =
         FlexAppData.send_http(st,"You just received Application data from FlexTLS!\r\n")
@@ -81,7 +81,7 @@ type FlexAppData =
     /// <summary>
     /// Send application data as an encoded string to network stream
     /// </summary>
-    /// <param name="st"> State of the current Handshake </param>
+    /// <param name="st"> State of the current connection </param>
     /// <param name="data"> Application data as encoded string </param>
     /// <param name="fp"> Optional fragmentation policy applied to the message </param>
     /// <returns> Updated state </returns>
@@ -94,7 +94,7 @@ type FlexAppData =
     /// <summary>
     /// Send application data as raw bytes to network stream
     /// </summary>
-    /// <param name="st"> State of the current Handshake </param>
+    /// <param name="st"> State of the current connection </param>
     /// <param name="data"> Application data as raw bytes </param>
     /// <param name="fp"> Optional fragmentation policy applied to the message </param>
     /// <returns> Updated state </returns>
