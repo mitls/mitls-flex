@@ -18,6 +18,8 @@
 
 module FlexTLS.FlexAppData
 
+open NLog
+
 open Bytes
 open Error
 open TLSConstants
@@ -40,6 +42,7 @@ type FlexAppData =
     /// <returns> Updated state * Application data bytes received </returns>
 
     static member receive (st:state) : state * bytes =
+        LogManager.GetLogger("file").Info("# APPLICATION DATA : FlexAppData.receive");
         let ct,pv,len,_ = FlexRecord.parseFragmentHeader st in
         match ct with
         | Application_data ->
@@ -107,6 +110,7 @@ type FlexAppData =
     /// <param name="fp"> Optional fragmentation policy applied to the message </param>
     /// <returns> Updated state </returns>
     static member send(st:state, data:bytes, ?fp:fragmentationPolicy) : state =
+        LogManager.GetLogger("file").Info("# APPLICATION DATA : FlexAppData.send");
         let fp = defaultArg fp FlexConstants.defaultFragmentationPolicy in
         let buf = st.write.appdata_buffer @| data in
         let st = FlexState.updateOutgoingAppDataBuffer st buf in
