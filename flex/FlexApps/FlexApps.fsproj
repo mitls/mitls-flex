@@ -87,6 +87,7 @@
     <Compile Include="Attack_SKIP_EarlyFinished.fs" />
     <Compile Include="Attack_SmallSubgroup_DHE.fs" />
     <Compile Include="Attack_Logjam.fs" />
+    <Compile Include="Test_EarlyAppData.fs" />
     <Compile Include="SmackTLS.fs" />
     <Compile Include="Handshake_full_RSA.fs" />
     <Compile Include="Handshake_full_DHE.fs" />
