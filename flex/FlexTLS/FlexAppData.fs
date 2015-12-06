@@ -71,6 +71,14 @@ type FlexAppData =
         FlexAppData.send(st, sprintf "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s" (Core.String.length data) data)
 
     /// <summary>
+    /// Send an application data HTTP GET request
+    /// </summary>
+    /// <param name="st"> State of the current connection </param>
+    /// <returns> Updated state <returns>
+    static member send_http_get(st:state) : state =
+        FlexAppData.send_http(st,"GET /")
+
+    /// <summary>
     /// Send the HTTP application data banner for FlexTLS
     /// </summary>
     /// <param name="st"> State of the current connection </param>
