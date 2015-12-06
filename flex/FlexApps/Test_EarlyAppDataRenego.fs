@@ -73,6 +73,8 @@ type Test_EarlyAppDataRenego =
 
 
         // Renegotiation
+        let fch = {FlexConstants.nullFClientHello with
+            ciphersuites = Some([TLS_RSA_WITH_AES_128_GCM_SHA256]) } in
         let st,nsc,fch   = FlexClientHello.send(st,fch) in
         let st,nsc,fsh   = FlexServerHello.receive(st,fch,nsc) in
         let st,nsc,fcert = FlexCertificate.receive(st,Client,nsc) in
