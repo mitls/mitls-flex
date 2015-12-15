@@ -38,6 +38,7 @@ open FlexCCS
 open FlexFinished
 open FlexState
 open FlexSecrets
+open FlexAlert
 
 /// Run full RSA handshakes, complying with TLS_RSA_WITH_AES_128_GCM_SHA256
 type Handshake_full_RSA =
@@ -78,6 +79,7 @@ type Handshake_full_RSA =
         let st           = FlexState.installReadKeys st nsc in
 
         let st,ffS       = FlexFinished.receive(st,nsc,Server) in
+        let st           = FlexAlert.send(st,TLSError.AD_close_notify) in
         st
 
     /// CLIENT - Run full RSA Handshake with mutual server and client authentication *)
