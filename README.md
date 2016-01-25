@@ -83,7 +83,7 @@ In general, you need a running F# installation (see http://fsharp.org/
 on how to get the most recent version of F# for your platform),
 and the 'make' build utility: 
 
-* Microsoft Windows. To get F#, you can either use Visual Studio 2013,  
+* Microsoft Windows. To get F#, you can either use Visual Studio 2015 
   or install all of the following:
   
   - .NET version 4.5 or above
@@ -167,7 +167,7 @@ Delete a certificate from the store by using the certutil command
 
 
 For convenience, a template install is provided with this release.
-To install the PKI, go to miTLS-0.9.0/tests and run "make pki.built"
+To install the PKI, go to miTLS-flex/tests and run "make pki.built"
 using Cygwin to generate and install certificates.
 If the installation of the certificates works, you should be prompted
 with a message to choose whether or not to accept them.
@@ -196,7 +196,7 @@ Delete a certificate from the store by using the certmgr command
 
 
 For convenience, a template install is provided with this release.
-To install the PKI, go to miTLS-0.9.0/test and run "make pki.built" to
+To install the PKI, go to miTLS-flex/test and run "make pki.built" to
 generate and install certificates.
 On Fedora, you will need to install the openssl-perl package before
 doing this.
@@ -208,7 +208,7 @@ doing this.
 The FlexTLS library and the FlexApps console application are
 built upon miTLS, for testing implementations of the TLS protocol.
 
-The Visual Studio solution can be found in the miTLS-0.9.0/VS folder.
+The Visual Studio solution can be found in the miTLS-flex/VS folder.
 The user should set the Startup project to be FlexApps. The main
 product of compilation is the "FlexApps.exe" executable. It can be
 found in the flex/FlexApps/bin/Release.
@@ -222,7 +222,7 @@ and test your own scenarios.
 
 A sample default-dh.pem file with default parameters and a
 dhparams-db.bin template database are available in the
-miTLS-0.9.0/data/dh directory and should be copied into the
+miTLS-flex/data/dh directory and should be copied into the
 flex/FlexApps/bin/Release/ directory. Note that the database has to
 be in your current working directory. We do recommend that you run
 FlexApps.exe from the Release directory.
