@@ -38,6 +38,7 @@ open Attack_TripleHandshake
 open Attack_SmallSubgroup_DHE
 open Attack_Logjam
 open Attack_Alert_Warning
+open Attack_DROWN
 open Handshake_full_RSA
 open Handshake_full_DHE
 open Handshake_full_ECDHE
@@ -187,6 +188,9 @@ let runRelease argv =
 
     | Some (Attack_Logjam) ->
          let _ = Attack_Logjam.run(opts.listen_addr,opts.connect_addr,opts.listen_port,opts.connect_port) in true
+
+   | Some (Attack_DROWN) ->
+         let _ = Attack_DROWN.run(opts.connect_addr,opts.connect_port) in true
 
     | Some (Test_EarlyAppData) ->
          let _ = Test_EarlyAppData.client(opts.connect_addr,opts.connect_port) in true

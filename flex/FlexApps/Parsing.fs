@@ -27,7 +27,7 @@ type ScenarioOpt    = // Normal
                       // Attacks
                       | Attack_FragmentedAlert | Attack_Alert_Warning | Attack_FragmentedClientHello
                       | Attack_SKIP_EarlyFinished | Attack_EarlyCCS | Attack_EarlyCCSMITM | Attack_TripleHandshake | Attack_SmallSubgroup | Attack_EarlyResume
-                      | Attack_Logjam
+                      | Attack_Logjam | Attack_DROWN
                       // Tests
                       | Test_EarlyAppData
                       | Test_EarlyAppDataRenego
@@ -116,6 +116,7 @@ let flexhelp w =
     fprintf w "                         Small Subgroup              {sgp,smallsubgroup}\n";
     fprintf w "                         Early Resume                {eres,earlyresume}\n";
     fprintf w "                         Logjam                      {lj,logjam}\n";
+    fprintf w "                         DROWN                       {drown}\n";
     fprintf w "                     - Tests\n";
     fprintf w "                         Early AppData               {eapp,earlyappdata}\n";
     fprintf w "                         Early AppData after Renego. {eappr,earlyappdatarenego}\n";
@@ -154,6 +155,7 @@ let private parse_scenario =
             | "smallsubgroup"| "sgp"   -> Some Attack_SmallSubgroup
             | "earlyresume" | "eres"   -> Some Attack_EarlyResume
             | "logjam" | "lj"          -> Some Attack_Logjam
+	    | "drown"  	               -> Some Attack_DROWN
             | "earlyappdata" | "eapp"  -> Some Test_EarlyAppData
             | "earlyappdatarenego" | "eappr"  -> Some Test_EarlyAppDataRenego
             | _                        -> None
