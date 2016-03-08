@@ -1,5 +1,5 @@
 (*
- * Copyright 2015 INRIA and Microsoft Corporation
+ * Copyright 2016 INRIA and Microsoft Corporation
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -182,7 +182,7 @@ type Attack_DROWN =
 	  | _ ->
 	   begin
 	   printf "We couldn't determine if %s is vulnerable to the DROWN attack.\n" cn; 
-	   printf "It doesn't accept SSL2 connections on port %d.\n" port;
+	   printf "It doesn't accept SSL2 export ciphersuites on port %d.\n" port;
 	   printf "The server may be vulnerable if it uses SSL2 in some other protocol\n";
 	   exit 0
 	   end
@@ -260,4 +260,4 @@ type Attack_DROWN =
 	   printf "ciphersuites is used in some other protocol\n"
 	end
 	   
-    end
+end
